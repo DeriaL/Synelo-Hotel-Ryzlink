@@ -24,11 +24,11 @@
         "Wi-Fi",
         "Snídaně v ceně"
       ],
-      "img": "assets/gallery/pokoje-01.jpg",
+      "img": "assets/gallery/pokoje-04.jpg",
       "gallery": [
-        "assets/gallery/pokoje-01.jpg",
-        "assets/gallery/pokoje-02.jpg",
-        "assets/gallery/pokoje-03.jpg"
+        "assets/gallery/pokoje-04.jpg",
+        "assets/gallery/pokoje-12.jpg",
+        "assets/gallery/vevinici-02.jpg"
       ]
     },
     {
@@ -45,11 +45,11 @@
         "Rozkládací pohovka",
         "Snídaně v ceně"
       ],
-      "img": "assets/gallery/pokoje-04.jpg",
+      "img": "assets/gallery/pokoje-11.jpg",
       "gallery": [
-        "assets/gallery/pokoje-04.jpg",
-        "assets/gallery/pokoje-05.jpg",
-        "assets/gallery/pokoje-06.jpg"
+        "assets/gallery/pokoje-11.jpg",
+        "assets/gallery/pokoje-07.jpg",
+        "assets/gallery/vevinici-09.jpg"
       ]
     },
     {
@@ -66,11 +66,11 @@
         "Klimatizace",
         "Snídaně v ceně"
       ],
-      "img": "assets/gallery/pokoje-07.jpg",
+      "img": "assets/gallery/pokoje-01.jpg",
       "gallery": [
-        "assets/gallery/pokoje-07.jpg",
-        "assets/gallery/pokoje-08.jpg",
-        "assets/gallery/pokoje-09.jpg"
+        "assets/gallery/pokoje-01.jpg",
+        "assets/gallery/vinarstvi-01.jpg",
+        "assets/gallery/vevinici-01.jpg"
       ]
     },
     {
@@ -87,11 +87,11 @@
         "Odpočinkový koutek",
         "Snídaně v ceně"
       ],
-      "img": "assets/gallery/pokoje-10.jpg",
+      "img": "assets/gallery/vinarstvi-08.jpg",
       "gallery": [
-        "assets/gallery/pokoje-10.jpg",
-        "assets/gallery/pokoje-11.jpg",
-        "assets/gallery/pokoje-12.jpg"
+        "assets/gallery/vinarstvi-08.jpg",
+        "assets/gallery/vinarstvi-12.jpg",
+        "assets/gallery/vevinici-04.jpg"
       ]
     },
     {
@@ -108,11 +108,11 @@
         "Samostatné WC",
         "Snídaně v ceně"
       ],
-      "img": "assets/gallery/pokoje-13.jpg",
+      "img": "assets/gallery/hotel-01.jpg",
       "gallery": [
-        "assets/gallery/pokoje-13.jpg",
-        "assets/gallery/pokoje-14.jpg",
-        "assets/gallery/pokoje-15.jpg"
+        "assets/gallery/hotel-01.jpg",
+        "assets/gallery/vevinici-10.jpg",
+        "assets/gallery/vevinici-11.jpg"
       ]
     }
   ],
@@ -130,7 +130,7 @@
         "Degustace vín",
         "Večeře s doprovodem"
       ],
-      "img": "assets/gallery/vevinici-01.jpg"
+      "img": "assets/gallery/pokoje-10.jpg"
     },
     {
       "id": "wellness30",
@@ -145,7 +145,7 @@
         "Sauny",
         "-30% wellness"
       ],
-      "img": "assets/gallery/wellness-02.jpg"
+      "img": "assets/gallery/wellness-03.jpg"
     },
     {
       "id": "romantic",
@@ -160,7 +160,7 @@
         "Láhev vína",
         "-30%"
       ],
-      "img": "assets/gallery/vinarstvi-01.jpg"
+      "img": "assets/gallery/restaurace-06.jpg"
     },
     {
       "id": "classika",
@@ -175,7 +175,7 @@
         "Degustace",
         "-30%"
       ],
-      "img": "assets/gallery/hotel-01.jpg"
+      "img": "assets/gallery/hotel-05.jpg"
     }
   ],
   "gallery": [
@@ -183,43 +183,57 @@
       "key": "hotel",
       "label": "Hotel",
       "images": [
-        "assets/gallery/hotel-01.jpg",
-        "assets/gallery/hotel-02.jpg",
         "assets/gallery/hotel-03.jpg",
-        "assets/gallery/hotel-04.jpg",
         "assets/gallery/hotel-05.jpg",
-        "assets/gallery/hotel-06.jpg",
         "assets/gallery/hotel-07.jpg",
-        "assets/gallery/hotel-08.jpg",
-        "assets/gallery/hotel-09.jpg"
+        "assets/gallery/hotel-09.jpg",
+        "assets/gallery/pokoje-03.jpg",
+        "assets/gallery/pokoje-08.jpg",
+        "assets/gallery/pokoje-09.jpg",
+        "assets/gallery/restaurace-02.jpg",
+        "assets/gallery/restaurace-08.jpg",
+        "assets/gallery/restaurace-09.jpg",
+        "assets/gallery/restaurace-11.jpg",
+        "assets/gallery/restaurace-13.jpg",
+        "assets/gallery/vevinici-07.jpg",
+        "assets/gallery/vevinici-12.jpg",
+        "assets/gallery/vinarstvi-06.jpg",
+        "assets/gallery/vinarstvi-07.jpg",
+        "assets/gallery/vinarstvi-09.jpg",
+        "assets/gallery/wellness-10.jpg",
+        "assets/gallery/wellness-13.jpg"
       ]
     },
     {
       "key": "pokoje",
       "label": "Pokoje",
       "images": [
+        "assets/gallery/hotel-01.jpg",
         "assets/gallery/pokoje-01.jpg",
-        "assets/gallery/pokoje-02.jpg",
-        "assets/gallery/pokoje-03.jpg",
         "assets/gallery/pokoje-04.jpg",
-        "assets/gallery/pokoje-05.jpg",
-        "assets/gallery/pokoje-06.jpg",
         "assets/gallery/pokoje-07.jpg",
-        "assets/gallery/pokoje-08.jpg",
-        "assets/gallery/pokoje-09.jpg",
-        "assets/gallery/pokoje-10.jpg",
         "assets/gallery/pokoje-11.jpg",
         "assets/gallery/pokoje-12.jpg",
-        "assets/gallery/pokoje-13.jpg",
-        "assets/gallery/pokoje-14.jpg",
         "assets/gallery/pokoje-15.jpg",
-        "assets/gallery/pokoje-16.jpg"
+        "assets/gallery/restaurace-03.jpg",
+        "assets/gallery/vevinici-01.jpg",
+        "assets/gallery/vevinici-02.jpg",
+        "assets/gallery/vevinici-04.jpg",
+        "assets/gallery/vevinici-08.jpg",
+        "assets/gallery/vevinici-09.jpg",
+        "assets/gallery/vevinici-10.jpg",
+        "assets/gallery/vevinici-11.jpg",
+        "assets/gallery/vinarstvi-01.jpg",
+        "assets/gallery/vinarstvi-08.jpg",
+        "assets/gallery/vinarstvi-12.jpg"
       ]
     },
     {
       "key": "wellness",
       "label": "Wellness",
       "images": [
+        "assets/gallery/vinarstvi-04.jpg",
+        "assets/gallery/vinarstvi-10.jpg",
         "assets/gallery/wellness-01.jpg",
         "assets/gallery/wellness-02.jpg",
         "assets/gallery/wellness-03.jpg",
@@ -229,67 +243,44 @@
         "assets/gallery/wellness-07.jpg",
         "assets/gallery/wellness-08.jpg",
         "assets/gallery/wellness-09.jpg",
-        "assets/gallery/wellness-10.jpg",
         "assets/gallery/wellness-11.jpg",
         "assets/gallery/wellness-12.jpg",
-        "assets/gallery/wellness-13.jpg",
         "assets/gallery/wellness-14.jpg"
-      ]
-    },
-    {
-      "key": "vevinici",
-      "label": "Ve vinici",
-      "images": [
-        "assets/gallery/vevinici-01.jpg",
-        "assets/gallery/vevinici-02.jpg",
-        "assets/gallery/vevinici-03.jpg",
-        "assets/gallery/vevinici-04.jpg",
-        "assets/gallery/vevinici-05.jpg",
-        "assets/gallery/vevinici-06.jpg",
-        "assets/gallery/vevinici-07.jpg",
-        "assets/gallery/vevinici-08.jpg",
-        "assets/gallery/vevinici-09.jpg",
-        "assets/gallery/vevinici-10.jpg",
-        "assets/gallery/vevinici-11.jpg",
-        "assets/gallery/vevinici-12.jpg"
       ]
     },
     {
       "key": "restaurace",
       "label": "Restaurace",
       "images": [
-        "assets/gallery/restaurace-01.jpg",
-        "assets/gallery/restaurace-02.jpg",
-        "assets/gallery/restaurace-03.jpg",
-        "assets/gallery/restaurace-04.jpg",
-        "assets/gallery/restaurace-05.jpg",
+        "assets/gallery/pokoje-16.jpg",
+        "assets/gallery/program-01.jpg",
+        "assets/gallery/program-02.jpg",
+        "assets/gallery/program-03.jpg",
+        "assets/gallery/program-04.jpg",
         "assets/gallery/restaurace-06.jpg",
-        "assets/gallery/restaurace-07.jpg",
-        "assets/gallery/restaurace-08.jpg",
-        "assets/gallery/restaurace-09.jpg",
-        "assets/gallery/restaurace-10.jpg",
-        "assets/gallery/restaurace-11.jpg",
         "assets/gallery/restaurace-12.jpg",
-        "assets/gallery/restaurace-13.jpg",
-        "assets/gallery/restaurace-14.jpg"
+        "assets/gallery/restaurace-14.jpg",
+        "assets/gallery/vevinici-06.jpg",
+        "assets/gallery/vinarstvi-02.jpg",
+        "assets/gallery/vinarstvi-03.jpg"
       ]
     },
     {
       "key": "vinarstvi",
       "label": "Vinařství",
       "images": [
-        "assets/gallery/vinarstvi-01.jpg",
-        "assets/gallery/vinarstvi-02.jpg",
-        "assets/gallery/vinarstvi-03.jpg",
-        "assets/gallery/vinarstvi-04.jpg",
-        "assets/gallery/vinarstvi-05.jpg",
-        "assets/gallery/vinarstvi-06.jpg",
-        "assets/gallery/vinarstvi-07.jpg",
-        "assets/gallery/vinarstvi-08.jpg",
-        "assets/gallery/vinarstvi-09.jpg",
-        "assets/gallery/vinarstvi-10.jpg",
+        "assets/gallery/hotel-04.jpg",
+        "assets/gallery/pokoje-02.jpg",
+        "assets/gallery/pokoje-05.jpg",
+        "assets/gallery/pokoje-06.jpg",
+        "assets/gallery/pokoje-10.jpg",
+        "assets/gallery/pokoje-13.jpg",
+        "assets/gallery/pokoje-14.jpg",
+        "assets/gallery/vevinici-03.jpg",
+        "assets/gallery/vevinici-05.jpg",
         "assets/gallery/vinarstvi-11.jpg",
-        "assets/gallery/vinarstvi-12.jpg"
+        "assets/gallery/restaurace-05.jpg",
+        "assets/gallery/restaurace-10.jpg"
       ]
     }
   ],
@@ -311,9 +302,9 @@
       "button": "Menu",
       "target": "#restaurant",
       "images": [
-        "assets/gallery/restaurace-01.jpg",
-        "assets/gallery/restaurace-04.jpg",
-        "assets/gallery/restaurace-07.jpg"
+        "assets/gallery/restaurace-06.jpg",
+        "assets/gallery/restaurace-12.jpg",
+        "assets/gallery/restaurace-14.jpg"
       ]
     },
     "winery": {
@@ -322,9 +313,9 @@
       "button": "Degustace",
       "target": "#tasting",
       "images": [
-        "assets/gallery/vinarstvi-02.jpg",
-        "assets/gallery/vinarstvi-05.jpg",
-        "assets/gallery/vinarstvi-08.jpg"
+        "assets/gallery/vinarstvi-11.jpg",
+        "assets/gallery/hotel-04.jpg",
+        "assets/gallery/pokoje-06.jpg"
       ]
     }
   },
@@ -332,10 +323,10 @@
     "stars": 4,
     "tagline": "MÍSTO, KDE SE RODÍ ZÁŽITKY",
     "images": [
-      "assets/gallery/wellness-01.jpg",
-      "assets/gallery/hotel-02.jpg",
-      "assets/gallery/vevinici-01.jpg",
-      "assets/gallery/restaurace-01.jpg"
+      "assets/gallery/hotel-03.jpg",
+      "assets/gallery/hotel-09.jpg",
+      "assets/gallery/vevinici-02.jpg",
+      "assets/gallery/hotel-07.jpg"
     ]
   },
   "faq": {
