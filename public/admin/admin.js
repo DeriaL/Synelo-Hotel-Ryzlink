@@ -155,7 +155,12 @@
     render();
   }
   window.__goTab = goTab;
-  document.querySelectorAll('#sideNav button').forEach(function (b) { b.addEventListener('click', function () { goTab(b.getAttribute('data-tab')); }); });
+  /* ---------- Мобільний сайдбар ---------- */
+  function closeSidebar() { var s = document.querySelector('.sidebar'); if (s) s.classList.remove('open'); var bd = $('#sideBackdrop'); if (bd) bd.classList.remove('show'); }
+  function toggleSidebar() { var s = document.querySelector('.sidebar'); if (!s) return; var open = s.classList.toggle('open'); var bd = $('#sideBackdrop'); if (bd) bd.classList.toggle('show', open); }
+  var _sideToggle = $('#sideToggle'); if (_sideToggle) _sideToggle.addEventListener('click', toggleSidebar);
+  var _sideBackdrop = $('#sideBackdrop'); if (_sideBackdrop) _sideBackdrop.addEventListener('click', closeSidebar);
+  document.querySelectorAll('#sideNav button').forEach(function (b) { b.addEventListener('click', function () { goTab(b.getAttribute('data-tab')); closeSidebar(); }); });
   $('#saveBtn').addEventListener('click', saveAll);
 
   function boot() {
@@ -468,9 +473,9 @@
         if (hasChat) tr.addEventListener('click', function () { openResConvo(r); });
         return tr;
       });
-      wrap.appendChild(h('table', { class: 'tbl' },
+      wrap.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
         h('thead', {}, h('tr', {}, [t('th_num'), t('th_item'), t('th_guest'), t('th_dates'), t('th_total'), t('th_source'), t('th_time')].map(function (x) { return h('th', {}, x); }))),
-        h('tbody', {}, rows)));
+        h('tbody', {}, rows))));
       wrap.appendChild(h('p', { style: 'color:var(--muted);font-size:.78rem;margin-top:12px' }, t('res_hint')));
     });
   }
