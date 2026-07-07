@@ -1,0 +1,19 @@
+# === Secrets — NEVER commit ===
+.env
+
+# === Runtime database (auto-seeded from public/js/data.js on first run) ===
+data/db.json
+data/*.tmp
+
+# === Local Claude Code settings ===
+.claude/settings.local.json
+
+# === Node ===
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# === OS / editor ===
+Thumbs.db
+.DS_Store
+*.swp

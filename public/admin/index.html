@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ryzlink · Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23a3182a'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='white' font-family='serif'%3EY%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <!-- Login -->
+  <div class="login" id="login">
+    <form class="login-card" id="loginForm">
+      <div class="login-brand"><span class="lb-mark">Y</span><div><strong>HOTEL RYZLINK</strong><span data-i18n="login_title">Ovládací panel</span></div></div>
+      <div class="lang-toggle" id="langToggleLogin"><button type="button" data-lang="cs" class="active">CZ</button><button type="button" data-lang="en">EN</button></div>
+      <label data-i18n="login_pass">Heslo administrátora</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+      <button type="submit" class="btn btn-red" data-i18n="login_btn">Přihlásit se</button>
+      <p class="login-err" id="loginErr"></p>
+      <p class="login-hint"><span data-i18n="login_hint">Výchozí:</span> <code>ryzlink-admin</code> (<code>.env</code> → <code>ADMIN_PASSWORD</code>)</p>
+    </form>
+  </div>
+
+  <!-- App -->
+  <div class="app" id="app" hidden>
+    <aside class="sidebar">
+      <div class="side-brand"><span class="lb-mark">Y</span><span>Ryzlink<br><small>Admin</small></span></div>
+      <nav class="side-nav" id="sideNav">
+        <button data-tab="dashboard" class="active">📊 <span data-i18n="tab_dashboard">Dashboard</span></button>
+        <button data-tab="rooms">🛏️ <span data-i18n="tab_rooms">Pokoje</span></button>
+        <button data-tab="packages">🎁 <span data-i18n="tab_packages">Balíčky / služby</span></button>
+        <button data-tab="gallery">🖼️ <span data-i18n="tab_gallery">Galerie</span></button>
+        <button data-tab="content">📝 <span data-i18n="tab_content">Bannery / Obsah</span></button>
+        <button data-tab="knowledge">📚 <span data-i18n="tab_knowledge">Znalostní báze</span></button>
+        <button data-tab="ai">🤖 <span data-i18n="tab_ai">AI agent</span></button>
+        <button data-tab="conversations">💬 <span data-i18n="tab_conversations">Konverzace</span></button>
+        <button data-tab="reservations">📅 <span data-i18n="tab_reservations">Rezervace</span></button>
+      </nav>
+      <div class="side-foot">
+        <a href="/" target="_blank" class="side-link" data-i18n="open_site">↗ Otevřít web</a>
+        <button class="side-link" id="logoutBtn" data-i18n="logout">⎋ Odhlásit se</button>
+        <a href="https://www.synelostudio.com/uk" target="_blank" rel="noopener" class="side-link" style="color:#c8a24c">◆ by Synelo Studio</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="topbar-actions">
+          <div class="lang-toggle" id="langToggle"><button type="button" data-lang="cs" class="active">CZ</button><button type="button" data-lang="en">EN</button></div>
+          <span class="save-state" id="saveState"></span>
+          <button class="btn btn-gold" id="saveBtn" data-i18n="save_btn" disabled>Uložit změny</button>
+        </div>
+      </header>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/admin/admin.js"></script>
+  <script src="/js/watermark.js"></script>
+</body>
+</html>

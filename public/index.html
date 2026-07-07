@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hotel Ryzlink - Mikulov</title>
+  <meta name="description" content="Butikový hotel Ryzlink v Mikulově — místo, kde se rodí zážitky. Pokoje, Wine Wellness, restaurace Ryzlink a vinařství Fučík." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23a3182a'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='white' font-family='serif'%3EY%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <a class="side-wine" href="#winery"><span>🍷</span> <span data-i18n="side_wine">Naše vína</span></a>
+  <div class="side-social">
+    <a href="https://www.facebook.com/hotelryzlink" target="_blank" rel="noopener" aria-label="Facebook">f</a>
+    <a href="https://www.instagram.com/hotelryzlink" target="_blank" rel="noopener" aria-label="Instagram">◎</a>
+    <a href="https://www.linkedin.com/company/vinarstvifucik" target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+  </div>
+
+  <!-- HLAVIČKA -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a href="#top" class="brand" aria-label="Hotel Ryzlink">
+        <span class="brand-mark">Y</span>
+        <span class="brand-text">HOTEL <strong>RYZLINK</strong></span>
+      </a>
+      <nav class="main-nav" id="mainNav">
+        <a href="#top" data-i18n="nav_about">O hotelu Ryzlink</a>
+        <a href="#packages" data-i18n="nav_program">Program 2026</a>
+        <a href="#winery" data-i18n="nav_winery">Vinařství Fučík</a>
+        <a href="#restaurant" data-i18n="nav_restaurant">Restaurace Ryzlink</a>
+        <a href="#wellness" data-i18n="nav_wellness">Wine Wellness</a>
+        <a href="#tasting" data-i18n="nav_tasting">Degustace</a>
+        <a href="#contacts" data-i18n="nav_contacts">Kontakt</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-toggle" id="langToggle" role="group" aria-label="Language">
+          <button type="button" data-lang="cs" class="active">CZ</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+        <button class="btn btn-ghost-gold" type="button" data-scroll="#packages" data-i18n="btn_vouchers">Poukazy</button>
+        <button class="btn btn-red" type="button" data-open-booking data-i18n="btn_book">Rezervovat</button>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu" type="button"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <div class="hero-slider" id="heroSlider"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="stars" aria-label="Hotel 4 hvězdy"><span>★</span><span>★</span><span>★</span><span class="star-empty">★</span></div>
+      <h1 class="hero-title" id="heroTitle">Místo, kde se rodí zážitky</h1>
+    </div>
+    <form class="booking-bar" id="bookingBar" autocomplete="off">
+      <div class="bb-field"><label data-i18n="bb_arrival">Příjezd</label><input type="date" id="bbCheckin" required /></div>
+      <div class="bb-field"><label data-i18n="bb_departure">Odjezd</label><input type="date" id="bbCheckout" required /></div>
+      <div class="bb-field bb-num"><label data-i18n="bb_adults">Dospělí</label><input type="number" id="bbAdults" min="1" max="6" value="1" /></div>
+      <div class="bb-field bb-num"><label data-i18n="bb_children">Děti</label><input type="number" id="bbChildren" min="0" max="6" value="0" /></div>
+      <button type="submit" class="btn btn-gold bb-submit" data-i18n="bb_submit">Rezervovat</button>
+    </form>
+  </section>
+
+  <!-- POKOJE -->
+  <section class="section rooms" id="rooms">
+    <div class="container">
+      <div class="rooms-slider" id="roomsSlider"><!-- main.js --></div>
+      <div class="slider-dots" id="roomsDots"></div>
+    </div>
+  </section>
+
+  <!-- GALERIE -->
+  <section class="section gallery" id="gallery">
+    <div class="container">
+      <div class="section-head center reveal"><span class="eyebrow" data-i18n="eyebrow_gallery">Galerie</span></div>
+      <div class="gallery-mosaic" id="galleryMosaic"><!-- main.js --></div>
+    </div>
+  </section>
+
+  <section class="banner" id="wellness" data-banner="wellness"></section>
+  <section class="banner" id="restaurant" data-banner="restaurant"></section>
+  <section class="banner" id="winery" data-banner="winery"></section>
+  <span id="tasting" class="anchor-spot"></span>
+
+  <!-- BALÍČKY -->
+  <section class="section packages" id="packages">
+    <div class="container">
+      <div class="packages-head reveal">
+        <div>
+          <span class="eyebrow" data-i18n="eyebrow_packages">Balíčky pro Vás</span>
+          <h2 data-i18n="h_packages">Spojení vína a zážitků</h2>
+        </div>
+        <div class="slider-arrows">
+          <button class="s-arrow" id="pkgPrev" aria-label="Zpět">◀</button>
+          <button class="s-arrow" id="pkgNext" aria-label="Další">▶</button>
+        </div>
+      </div>
+      <div class="packages-viewport"><div class="packages-track" id="packagesTrack"><!-- main.js --></div></div>
+      <div class="packages-cta"><button class="btn btn-red btn-lg" data-ask-key="ask_offers" data-i18n="packages_all">Zobrazit všechny nabídky</button></div>
+    </div>
+  </section>
+
+  <!-- KONTAKT -->
+  <section class="section contacts" id="contacts">
+    <div class="container contacts-grid">
+      <div class="contacts-text reveal">
+        <span class="eyebrow" data-i18n="eyebrow_contacts">Kontakt</span>
+        <h2 data-i18n="h_contacts">Jak nás najít</h2>
+        <ul class="contacts-list">
+          <li><span class="ci">📍</span><div><strong data-i18n="c_address">Adresa</strong><a href="https://maps.google.com/?q=Zl%C3%A1malova%201809/2%20Mikulov" target="_blank" rel="noopener">Zlámalova 1809/2, Mikulov, 692 01, Česká republika</a></div></li>
+          <li><span class="ci">📞</span><div><strong data-i18n="c_reception">Recepce</strong><a href="tel:+420770139407">+420 770 139 407</a></div></li>
+          <li><span class="ci">✉️</span><div><strong data-i18n="c_email">E-mail</strong><a href="mailto:recepce@hotelryzlink.cz">recepce@hotelryzlink.cz</a></div></li>
+        </ul>
+        <button class="btn btn-red btn-lg" data-open-booking data-i18n="btn_book_stay">Rezervovat pobyt</button>
+      </div>
+      <a class="contacts-map reveal" href="https://maps.google.com/?q=Zl%C3%A1malova%201809/2%20Mikulov" target="_blank" rel="noopener" aria-label="Otevřít na mapě">
+        <span class="map-pin">📍</span>
+        <span class="map-city">Mikulov · Pálava</span>
+        <span class="map-open" data-i18n="map_open">Otevřít v Google Maps →</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- PATIČKA -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-logo"><span class="foot-mark">Y</span><span class="foot-name">HOTEL RYZLINK</span></div>
+      <div class="footer-col">
+        <h4 data-i18n="f_contact">Kontakt</h4>
+        <p><strong>Tel.:</strong> <a href="tel:+420770139407">+420 770 139 407</a></p>
+        <p><strong>E-mail:</strong> <a href="mailto:recepce@hotelryzlink.cz">recepce@hotelryzlink.cz</a></p>
+      </div>
+      <div class="footer-col">
+        <h4 data-i18n="f_address">Adresa</h4>
+        <p>Zlámalova 1809/2<br>Mikulov, 692 01<br>Česká republika</p>
+      </div>
+      <div class="footer-logo footer-logo--fucik"><span class="foot-mark">Y</span><span class="foot-name">VINAŘSTVÍ<br><strong>FUČÍK</strong></span></div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-social">
+        <a href="https://www.facebook.com/hotelryzlink" target="_blank" rel="noopener" aria-label="Facebook">f</a>
+        <a href="https://www.instagram.com/hotelryzlink" target="_blank" rel="noopener" aria-label="Instagram">◎</a>
+        <a href="https://www.linkedin.com/company/vinarstvifucik" target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+      </div>
+      <div class="footer-links">
+        <a href="#top" data-i18n="f_about">O hotelu Ryzlink</a><span>|</span>
+        <a href="#" data-ask-key="ask_faq" data-i18n="f_faq">Časté dotazy</a><span>|</span>
+        <a href="#" onclick="return false" data-i18n="f_terms">Obchodní podmínky</a><span>|</span>
+        <a href="#" onclick="return false" data-i18n="f_privacy">Ochrana osobních údajů</a><span>|</span>
+        <a href="#" onclick="return false" data-i18n="f_rules">Ubytovací řád</a>
+      </div>
+      <span class="demo-pill" data-i18n="demo_pill">Koncept-demo · platba neprobíhá</span>
+    </div>
+    <div class="footer-legal" data-i18n-html="legal_html">
+      Demonstrační prototyp vytvořený studiem <a href="https://www.synelostudio.com/uk" target="_blank" rel="noopener">Synelo&nbsp;Studio</a>
+      pro ukázku možností AI-automatizací. Nejedná se o komerční nabídku ani oficiální web hotelu.
+    </div>
+    <button class="to-top" id="toTop" aria-label="Nahoru">▲</button>
+  </footer>
+
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="lb-close" id="lbClose" aria-label="Zavřít">×</button>
+    <button class="lb-nav lb-prev" id="lbPrev" aria-label="Zpět">◀</button>
+    <img class="lb-img" id="lbImg" alt="" />
+    <button class="lb-nav lb-next" id="lbNext" aria-label="Další">▶</button>
+    <div class="lb-caption" id="lbCaption"></div>
+  </div>
+
+  <div class="modal" id="bookingModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-booking></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close-booking aria-label="Zavřít">×</button>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="/js/data.js"></script>
+  <script src="/js/data-en.js"></script>
+  <script src="/js/i18n-site.js"></script>
+  <script src="/js/booking.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/watermark.js"></script>
+</body>
+</html>
