@@ -16,16 +16,42 @@
 
   // --- Локалізація кнопок віджета під мову гостя ---
   var I18N = {
+    cs: { bookThis: 'Rezervovat tento', choose: 'Vybrat', perNight: 'CZK/noc', upTo: 'až', guests: 'hostů', nights: 'nocí', showRooms: 'Zobrazit pokoje', offers: 'Nabídky', howGet: 'Jak se dostat?', placeholder: 'Napište zprávu…', resv: 'Rezervace', guest: 'Host', total: 'Celkem' },
     en: { bookThis: 'Book this one', choose: 'Choose', perNight: 'CZK/night', upTo: 'up to', guests: 'guests', nights: 'nights', showRooms: 'Show rooms', offers: 'Special offers', howGet: 'How to get there?', placeholder: 'Type a message…', resv: 'Reservation', guest: 'Guest', total: 'Total' },
-    cs: { bookThis: 'Rezervovat tento', choose: 'Vybrat', perNight: 'CZK/noc', upTo: 'až', guests: 'hostů', nights: 'nocí', showRooms: 'Zobrazit pokoje', offers: 'Nabídky', howGet: 'Jak se dostat?', placeholder: 'Napište zprávu…', resv: 'Rezervace', guest: 'Host', total: 'Celkem' }
+    uk: { bookThis: 'Забронювати цей', choose: 'Обрати', perNight: 'CZK/ніч', upTo: 'до', guests: 'гостей', nights: 'ноч.', showRooms: 'Показати номери', offers: 'Спецпропозиції', howGet: 'Як дістатися?', placeholder: 'Напишіть повідомлення…', resv: 'Бронювання', guest: 'Гість', total: 'Разом' },
+    ru: { bookThis: 'Забронировать этот', choose: 'Выбрать', perNight: 'CZK/ночь', upTo: 'до', guests: 'гостей', nights: 'ноч.', showRooms: 'Показать номера', offers: 'Спецпредложения', howGet: 'Как добраться?', placeholder: 'Напишите сообщение…', resv: 'Бронирование', guest: 'Гость', total: 'Итого' },
+    de: { bookThis: 'Dieses buchen', choose: 'Wählen', perNight: 'CZK/Nacht', upTo: 'bis zu', guests: 'Gäste', nights: 'Nächte', showRooms: 'Zimmer zeigen', offers: 'Angebote', howGet: 'Anfahrt?', placeholder: 'Nachricht schreiben…', resv: 'Reservierung', guest: 'Gast', total: 'Gesamt' },
+    pl: { bookThis: 'Zarezerwuj ten', choose: 'Wybierz', perNight: 'CZK/noc', upTo: 'do', guests: 'gości', nights: 'nocy', showRooms: 'Pokaż pokoje', offers: 'Oferty', howGet: 'Jak dojechać?', placeholder: 'Napisz wiadomość…', resv: 'Rezerwacja', guest: 'Gość', total: 'Razem' }
   };
-  // Мова кнопок віджета ЗАВЖДИ дорівнює мові сайту (cs/en) — не залежить від мови повідомлення.
+  // Базова мова віджета = мова САЙТУ (cs/en). Коли гість пише — підлаштовуємось під мову ЙОГО повідомлення.
   var SITE_LANG = function () { var l = localStorage.getItem('rz_site_lang'); return (l === 'en') ? 'en' : 'cs'; };
   var chatLang = SITE_LANG();
+  function detectLang(text) {
+    var s = String(text || '').toLowerCase();
+    if (/[іїєґ]/.test(s)) return 'uk';
+    if (/[ёыэ]/.test(s)) return 'ru';
+    if (/[а-я]/.test(s)) {
+      if (/(дяку|будь ласка|котр|скільки|привіт|потріб|обов|нема)/.test(s)) return 'uk';
+      if (/(спасибо|пожалуйста|привет|сколько|здравств|нужно|можно ли)/.test(s)) return 'ru';
+      return 'uk';
+    }
+    if (/[ąćęłńóśźż]/.test(s) || /(dzień|proszę|chcę|dziękuję|pokój|jaki)/.test(s)) return 'pl';
+    if (/[äöüß]/.test(s) || /\b(ich|und|zimmer|möchte|guten|danke|bitte|haben|wir|kann)\b/.test(s)) return 'de';
+    if (/[ěščřžůýáíéúďťň]/.test(s) || /(pokoj|chci|děkuj|dobrý|prosím|rezervac|víkend|kolik|máte|jaké|nabídk|snídan|chtěl)/.test(s)) return 'cs';
+    if (/[a-z]/.test(s)) {
+      if (/\b(the|you|your|room|rooms|book|booking|hello|hi|please|want|would|like|how|what|when|price|night|nights|thanks|thank|good|available|reservation|dog|breakfast)\b/.test(s)) return 'en';
+      return chatLang; // невпевнено — лишаємо поточну (базову) мову
+    }
+    return chatLang;
+  }
   function t(k) { return (I18N[chatLang] || I18N.cs)[k] || I18N.cs[k]; }
   var BOOKMSG = {
+    cs: ['Chci rezervovat pokoj', 'Chci rezervovat balíček'],
     en: ['I would like to book the room', 'I would like to book the package'],
-    cs: ['Chci rezervovat pokoj', 'Chci rezervovat balíček']
+    uk: ['Хочу забронювати номер', 'Хочу забронювати пакет'],
+    ru: ['Хочу забронировать номер', 'Хочу забронировать пакет'],
+    de: ['Ich möchte das Zimmer buchen:', 'Ich möchte das Paket buchen:'],
+    pl: ['Chcę zarezerwować pokój', 'Chcę zarezerwować pakiet']
   };
   function bookMsg(i) { return (BOOKMSG[chatLang] || BOOKMSG.cs)[i]; }
 
@@ -242,7 +268,7 @@
   }
 
   function send(text) {
-    chatLang = SITE_LANG(); // мова кнопок = мова сайту, а не мова повідомлення
+    chatLang = detectLang(text); // підлаштовуємось під мову повідомлення гостя
     if (input) input.placeholder = t('placeholder');
     addMsg('user', text);
     history.push({ role: 'user', content: text });

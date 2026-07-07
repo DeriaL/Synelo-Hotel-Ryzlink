@@ -142,22 +142,19 @@ function buildTools() {
 }
 function buildSystemPrompt(lang) {
   const s = db.settings(); const hotel = db.publicData().hotel;
-  const L = (lang === 'en') ? 'en' : 'cs';
-  const LANG_NAME = (L === 'en') ? 'ENGLISH' : 'CZECH (ČEŠTINA)';
-  const langLine = 'RESPONSE LANGUAGE = ' + LANG_NAME + '. Write your ENTIRE answer in ' + LANG_NAME +
-    ' — every sentence of the reply AND the SUGGESTIONS line. This is an absolute rule: IGNORE the language the guest uses. Even if the guest writes in Ukrainian, Russian, Polish or any other language, you STILL answer only in ' + LANG_NAME + '. Never mix languages.';
+  const NAMES = { cs: 'češtině (Czech)', en: 'English', uk: 'ukrajinštině (Ukrainian)', ru: 'ruštině (Russian)', de: 'němčině (German)', pl: 'polštině (Polish)' };
+  const hint = NAMES[lang] ? (' Підказка інтерфейсу: ймовірна мова останнього повідомлення — ' + NAMES[lang] + '.') : '';
   return [
-    langLine,
+    'МОВА ВІДПОВІДІ (важливо): відповідай ТІЄЮ САМОЮ мовою, якою гість написав своє ОСТАННЄ повідомлення. Гість може перемикати мови між повідомленнями — завжди дзеркаль мову останнього повідомлення (і основний текст, і рядок SUGGESTIONS).' + hint,
     s.ai.persona,
     s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (враховуй першими): ' + s.ai.priorities) : '',
     'Для БУДЬ-ЯКОГО питання про готель, послуги, ціни, години, правила чи околиці — спершу виклич search_knowledge і відповідай на основі знайденого. Якщо у базі знань нічого немає — чесно скажи, що уточниш деталь на рецепції (' + hotel.phone + '), не вигадуй.',
-    'База знань — ЧЕСЬКОЮ мовою. У параметр query інструмента search_knowledge ЗАВЖДИ передавай ЧЕСЬКІ ключові слова (переклади суть питання чеською), інакше нічого не знайдеш.',
+    'База знань — ЧЕСЬКОЮ мовою. У параметр query інструмента search_knowledge ЗАВЖДИ передавай ЧЕСЬКІ ключові слова (переклади суть питання чеською), інакше нічого не знайдеш. Але саму ВІДПОВІДЬ гостю пиши мовою його повідомлення.',
     'ФОРМАТ ВІДПОВІДЕЙ: пиши стисло, як у месенджері; звичайний текст, максимум **жирний**. НЕ використовуй markdown-таблиці та довгі переліки — вони погано виглядають у чаті.',
     'Коли показуєш номери, доступність чи пакети — обовʼязково виклич відповідний інструмент (get_room_details / search_availability / list_packages) і НЕ переліковуй їх у тексті: інтерфейс сам покаже гарні картки з фото та кнопками. Дай лише короткий вступ (1 речення) і запитай наступний крок.',
-    'НАПРИКІНЦІ КОЖНОЇ відповіді додай окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — це 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту. Не додавай нічого після цього рядка.',
+    'НАПРИКІНЦІ КОЖНОЇ відповіді додай окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — це 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту, ТІЄЮ Ж мовою, що й відповідь. Не додавай нічого після цього рядка.',
     'Це демонстраційний концепт — реальна оплата не проводиться (згадуй лише якщо питають про оплату).',
-    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + (hotel.currency || 'CZK') + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.',
-    '⚠️ REMINDER — the whole reply, including SUGGESTIONS, MUST be written in ' + LANG_NAME + ' only.'
+    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + (hotel.currency || 'CZK') + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.'
   ].filter(Boolean).join('\n');
 }
 
