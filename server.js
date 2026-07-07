@@ -133,11 +133,11 @@ function buildTools() {
   const roomIds = pub.rooms.map(function (r) { return r.id; });
   const pkgIds = pub.packages.map(function (p) { return p.id; });
   return [
-    { name: 'search_availability', description: 'Перевірити доступність номерів на дати. Завжди для цін/наявності — не вигадуй.', input_schema: { type: 'object', properties: { checkin: { type: 'string' }, checkout: { type: 'string' }, adults: { type: 'integer' }, children: { type: 'integer' } }, required: ['checkin', 'checkout', 'adults'] } },
-    { name: 'get_room_details', description: 'Опис номера (або всіх).', input_schema: { type: 'object', properties: { room_id: { type: 'string', enum: roomIds } } } },
-    { name: 'list_packages', description: 'Список пакетів/пропозицій з цінами.', input_schema: { type: 'object', properties: {} } },
-    { name: 'search_knowledge', description: 'Пошук у базі знань готелю (спарсено з сайту): години, ціни, правила, wellness, ресторан, дегустації, події, зручності номерів, локація тощо. Використовуй для БУДЬ-ЯКОГО фактичного питання про готель.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Питання або ключові слова гостя' } }, required: ['query'] } },
-    { name: 'create_reservation', description: 'Створити (демо) бронювання після підтвердження номера/пакета, дат та імені.', input_schema: { type: 'object', properties: { name: { type: 'string' }, room_id: { type: 'string', enum: roomIds }, package_id: { type: 'string', enum: pkgIds }, checkin: { type: 'string' }, checkout: { type: 'string' }, adults: { type: 'integer' }, children: { type: 'integer' }, email: { type: 'string' }, phone: { type: 'string' } }, required: ['name'] } }
+    { name: 'search_availability', description: 'Перевір реальну наявність і ПОВНУ ціну на конкретні дати та кількість гостей. ЗАВЖДИ виклич перед тим, як назвати ціну чи підтвердити наявність. Повертає по кожному номеру: наявність, ціну/ніч, суму разом, скільки номерів лишилось (дефіцит) і примітки. Дати у форматі DD.MM.YYYY, лише майбутні.', input_schema: { type: 'object', properties: { checkin: { type: 'string', description: 'Дата заїзду DD.MM.YYYY' }, checkout: { type: 'string', description: 'Дата виїзду DD.MM.YYYY' }, adults: { type: 'integer' }, children: { type: 'integer' } }, required: ['checkin', 'checkout', 'adults'] } },
+    { name: 'get_room_details', description: 'Повні деталі одного номера (або всіх, якщо room_id не вказано): місткість, площа, ціна, зручності, фото. Виклич, коли гість питає про конкретний номер, хоче порівняти чи обрати.', input_schema: { type: 'object', properties: { room_id: { type: 'string', enum: roomIds } } } },
+    { name: 'list_packages', description: 'Усі пакети/спецпропозиції з цінами й що входить (романтика, wine-wellness, дегустації, вікенд). Виклич, коли гість хоче пропозиції, знижки, враження, романтику чи привід забронювати.', input_schema: { type: 'object', properties: {} } },
+    { name: 'search_knowledge', description: 'Пошук у базі знань готелю (спарсено з сайту): години, ціни, правила, wellness, ресторан, дегустації, події, зручності, домашні тварини, паркінг, сніданок, локація/як дістатися, що подивитися поруч тощо. Використовуй для БУДЬ-ЯКОГО фактичного питання про готель. query — ЧЕСЬКОЮ.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Ключові слова ЧЕСЬКОЮ (переклади суть питання гостя)' } }, required: ['query'] } },
+    { name: 'create_reservation', description: 'Створити (демо) бронювання. Виклич ЛИШЕ після стислого підсумку + ЯВНОГО підтвердження гостя + наявного імені. Номер: room_id+checkin+checkout+adults(+children,email). Пакет: package_id(+name). Реальна оплата не проводиться.', input_schema: { type: 'object', properties: { name: { type: 'string' }, room_id: { type: 'string', enum: roomIds }, package_id: { type: 'string', enum: pkgIds }, checkin: { type: 'string' }, checkout: { type: 'string' }, adults: { type: 'integer' }, children: { type: 'integer' }, email: { type: 'string' }, phone: { type: 'string' } }, required: ['name'] } }
   ];
 }
 function buildSystemPrompt(lang) {
@@ -148,30 +148,62 @@ function buildSystemPrompt(lang) {
   const _fmt = function (d) { return _pad(d.getDate()) + '.' + _pad(d.getMonth() + 1) + '.' + d.getFullYear(); };
   let _toSat = (6 - _now.getDay() + 7) % 7; if (_toSat === 0) _toSat = 7;
   const _sat = new Date(_now.getTime() + _toSat * 86400000), _sun = new Date(_sat.getTime() + 86400000);
+  const cur = hotel.currency || 'CZK';
   return [
+    // 1) Мова
     'МОВА ВІДПОВІДІ (важливо): відповідай ТІЄЮ САМОЮ мовою, якою гість написав своє ОСТАННЄ повідомлення. Гість може перемикати мови між повідомленнями — завжди дзеркаль мову останнього повідомлення (і основний текст, і рядок SUGGESTIONS).' + hint,
-    'ДАТА: сьогодні ' + _fmt(_now) + '. Це справжня поточна дата. Пропонуй і використовуй ЛИШЕ майбутні дати (сьогодні або пізніше) — НІКОЛИ не пропонуй минулі дати чи минулі місяці. Формат дат — DD.MM.YYYY. «Найближчі вихідні» = ' + _fmt(_sat) + '–' + _fmt(_sun) + '. У рядку SUGGESTIONS та у пропозиціях дат став РЕАЛЬНІ майбутні дати цього формату (напр. саме ' + _fmt(_sat) + '–' + _fmt(_sun) + ' для найближчих вихідних).',
+    // 2) Дата
+    'ДАТА: сьогодні ' + _fmt(_now) + '. Це справжня поточна дата. Пропонуй і використовуй ЛИШЕ майбутні дати (сьогодні або пізніше) — НІКОЛИ не пропонуй минулі дати чи минулі місяці. Формат дат — DD.MM.YYYY. «Найближчі вихідні» = ' + _fmt(_sat) + '–' + _fmt(_sun) + '. У SUGGESTIONS і пропозиціях дат став РЕАЛЬНІ майбутні дати цього формату.',
+    // 3) Ідентичність (редагується в адмінці)
     s.ai.persona,
-    s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (враховуй першими): ' + s.ai.priorities) : '',
-    'Для БУДЬ-ЯКОГО питання про готель, послуги, ціни, години, правила чи околиці — спершу виклич search_knowledge і відповідай на основі знайденого. Якщо у базі знань нічого немає — чесно скажи, що уточниш деталь на рецепції (' + hotel.phone + '), не вигадуй.',
-    'База знань — ЧЕСЬКОЮ мовою. У параметр query інструмента search_knowledge ЗАВЖДИ передавай ЧЕСЬКІ ключові слова (переклади суть питання чеською), інакше нічого не знайдеш. Але саму ВІДПОВІДЬ гостю пиши мовою його повідомлення.',
-    'ФОРМАТ ВІДПОВІДЕЙ: пиши стисло, як у месенджері; звичайний текст, максимум **жирний**. НЕ використовуй markdown-таблиці та довгі переліки — вони погано виглядають у чаті.',
-    'Коли показуєш номери, доступність чи пакети — обовʼязково виклич відповідний інструмент (get_room_details / search_availability / list_packages) і НЕ переліковуй їх у тексті: інтерфейс сам покаже гарні картки з фото та кнопками. Дай лише короткий вступ (1 речення) і запитай наступний крок.',
-    'НАПРИКІНЦІ КОЖНОЇ відповіді додай окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — це 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту, ТІЄЮ Ж мовою, що й відповідь. Не додавай нічого після цього рядка.',
-    'Це демонстраційний концепт — реальна оплата не проводиться (згадуй лише якщо питають про оплату).',
-    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + (hotel.currency || 'CZK') + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.'
+    // 4) Місія
+    'ТВОЯ МІСІЯ: ти — ПЕРШОКЛАСНИЙ AI-консьєрж бутик-готелю. Мета — щиро допомогти гостю обрати ідеальний варіант і делікатно, впевнено довести його до бронювання. Ти уважний, теплий і компетентний; створюєш бажання приїхати, але без тиску й нав\'язливості. Веди діалог проактивно: не зупиняйся на «ось інформація» — завжди пропонуй наступний крок.',
+    // 5) Пріоритети (адмінка)
+    s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (радь ними першими, коли доречно): ' + s.ai.priorities) : '',
+    // 6) Тон і стиль
+    'ТОН І СТИЛЬ: тепло, вишукано, по-людськи — як консьєрж дорогого винного готелю. Стисло, як у месенджері (зазвичай 2–5 речень). Ключове — **жирним**. Емодзі зрідка й доречно (🍷). НЕ використовуй markdown-таблиці та довгі марковані списки.',
+    // 7) Тільки факти з інструментів
+    'ФАКТИ ЛИШЕ З ІНСТРУМЕНТІВ (антигалюцинація): будь-які ціни, наявність, години, правила, зручності — ТІЛЬКИ через інструменти (search_availability / get_room_details / list_packages / search_knowledge). НІКОЛИ не вигадуй числа, дати чи факти. Якщо потрібної інформації в базі немає — чесно скажи, що уточниш на рецепції (' + hotel.phone + ', ' + hotel.email + '), і запропонуй допомогти з іншим.',
+    // 8) Картки замість тексту
+    'КАРТКИ: коли показуєш номери, наявність чи пакети — ОБОВ\'ЯЗКОВО виклич відповідний інструмент і НЕ переліковуй їх текстом: інтерфейс сам покаже гарні картки з фото, цінами й кнопками. У тексті — лише короткий вступ (1–2 речення) + ОДНА впевнена рекомендація з причиною.',
+    // 9) Флоу підбору/бронювання
+    'ФЛОУ: 1) з\'ясуй потребу гостя; 2) для наявності/бронювання потрібні ДАТИ (заїзд+виїзд) і КІЛЬКІСТЬ гостей — якщо чогось бракує, спитай ОДНИМ коротким питанням (запропонуй зручний варіант, напр. «найближчі вихідні, для двох»); 3) виклич search_availability; 4) впевнено порекомендуй КОНКРЕТНИЙ номер під потребу + поясни ЧОМУ (вид, тераса, wine-wellness, місткість); 5) доречний апсел; 6) підтвердження бронювання (нижче).',
+    // 10) Продаж і робота із запереченнями
+    'ПРОДАЖ І ЦІННІСТЬ: завжди давай КОНКРЕТНУ рекомендацію (не «ось усі варіанти»). Підкреслюй цінність (виноградники Палави, wine-wellness, сніданок у ціні, тераса, атмосфера). За доречності м\'яко запропонуй пакет або винний досвід (дегустація/wellness) як приємне доповнення. Заперечення щодо ціни — покажи цінність або запропонуй дешевший номер/пакет. Немає місця на дати — ОДРАЗУ запропонуй альтернативні дати чи інший номер, не залишай гостя в глухому куті.',
+    // 11) Підтвердження бронювання
+    'БРОНЮВАННЯ (важливо): create_reservation виклич ЛИШЕ після того, як (а) показав гостю стислий ПІДСУМОК (номер/пакет, дати, гості, ночей, разом ' + cur + ') і гість ЯВНО підтвердив, ТА (б) маєш його ІМʼЯ (email — за бажанням). Спершу коротко попроси підтвердити й назвати імʼя. Для номера передавай room_id+checkin+checkout+adults (+children); для пакета — package_id. Після успіху — тепло привітай, назви КОД підтвердження й наступний крок; за доречності запропонуй додати дегустацію чи wellness.',
+    // 12) Межі
+    'МЕЖІ: тримайся теми готелю; на сторонні теми чемно повертай до бронювання/послуг. Будь чесним, ніколи не обіцяй того, чого немає в даних. Це демо — справжня оплата не проводиться (згадуй лише якщо питають про оплату).',
+    // 13) База знань чеською
+    'БАЗА ЗНАНЬ — ЧЕСЬКОЮ: у query для search_knowledge завжди передавай ЧЕСЬКІ ключові слова (переклади суть питання), інакше нічого не знайдеш. Відповідь гостю — його мовою.',
+    // 14) SUGGESTIONS
+    'НАПРИКІНЦІ КОЖНОЇ відповіді — окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту й такі, що ведуть до бронювання (напр. «Забронювати Diamond Royal | Що входить у Wine Wellness? | Покажіть романтичний пакет»), ТІЄЮ Ж мовою, що й відповідь. Нічого не пиши після цього рядка.',
+    // 15) Факти-підпис
+    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + cur + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.'
   ].filter(Boolean).join('\n');
 }
 
 async function callClaude(messages, lang) {
   const events = []; let convo = messages.slice(); const MODEL = currentModel();
-  for (let step = 0; step < 6; step++) {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: buildSystemPrompt(lang), tools: buildTools(), messages: convo })
-    });
-    if (!resp.ok) { const txt = await resp.text(); throw new Error('Anthropic API ' + resp.status + ': ' + txt.slice(0, 300)); }
+  const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  for (let step = 0; step < 8; step++) {
+    // Виклик з ретраєм на тимчасові помилки (429/5xx/мережа) — надійність.
+    let resp = null, lastErr = null;
+    const body = JSON.stringify({ model: MODEL, max_tokens: 1500, temperature: 0.6, system: buildSystemPrompt(lang), tools: buildTools(), messages: convo });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01' },
+          body: body
+        });
+      } catch (e) { lastErr = e; resp = null; }
+      if (resp && resp.ok) break;
+      const status = resp ? resp.status : 0;
+      if (attempt < 2 && (status === 0 || status === 429 || status >= 500)) { await sleep(700 * (attempt + 1)); continue; }
+      if (!resp) throw lastErr || new Error('Anthropic API: network error');
+      const txt = await resp.text(); throw new Error('Anthropic API ' + status + ': ' + txt.slice(0, 300));
+    }
     const data = await resp.json();
     if (data.stop_reason === 'tool_use') {
       const toolResults = [];
