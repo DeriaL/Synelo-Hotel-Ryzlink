@@ -140,28 +140,34 @@ function buildTools() {
     { name: 'create_reservation', description: 'Створити (демо) бронювання після підтвердження номера/пакета, дат та імені.', input_schema: { type: 'object', properties: { name: { type: 'string' }, room_id: { type: 'string', enum: roomIds }, package_id: { type: 'string', enum: pkgIds }, checkin: { type: 'string' }, checkout: { type: 'string' }, adults: { type: 'integer' }, children: { type: 'integer' }, email: { type: 'string' }, phone: { type: 'string' } }, required: ['name'] } }
   ];
 }
-function buildSystemPrompt() {
+function buildSystemPrompt(lang) {
   const s = db.settings(); const hotel = db.publicData().hotel;
+  const L = (lang === 'en') ? 'en' : 'cs';
+  const LANG_NAME = (L === 'en') ? 'ENGLISH' : 'CZECH (ČEŠTINA)';
+  const langLine = 'RESPONSE LANGUAGE = ' + LANG_NAME + '. Write your ENTIRE answer in ' + LANG_NAME +
+    ' — every sentence of the reply AND the SUGGESTIONS line. This is an absolute rule: IGNORE the language the guest uses. Even if the guest writes in Ukrainian, Russian, Polish or any other language, you STILL answer only in ' + LANG_NAME + '. Never mix languages.';
   return [
+    langLine,
     s.ai.persona,
     s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (враховуй першими): ' + s.ai.priorities) : '',
     'Для БУДЬ-ЯКОГО питання про готель, послуги, ціни, години, правила чи околиці — спершу виклич search_knowledge і відповідай на основі знайденого. Якщо у базі знань нічого немає — чесно скажи, що уточниш деталь на рецепції (' + hotel.phone + '), не вигадуй.',
-    'ВАЖЛИВО: база знань — ЧЕСЬКОЮ мовою. Якщо гість пише іншою мовою — у параметр query інструмента search_knowledge передавай ЧЕСЬКІ ключові слова (переклади суть питання чеською), інакше нічого не знайдеш. А ВІДПОВІДАЙ гостю його мовою.',
+    'База знань — ЧЕСЬКОЮ мовою. У параметр query інструмента search_knowledge ЗАВЖДИ передавай ЧЕСЬКІ ключові слова (переклади суть питання чеською), інакше нічого не знайдеш.',
     'ФОРМАТ ВІДПОВІДЕЙ: пиши стисло, як у месенджері; звичайний текст, максимум **жирний**. НЕ використовуй markdown-таблиці та довгі переліки — вони погано виглядають у чаті.',
     'Коли показуєш номери, доступність чи пакети — обовʼязково виклич відповідний інструмент (get_room_details / search_availability / list_packages) і НЕ переліковуй їх у тексті: інтерфейс сам покаже гарні картки з фото та кнопками. Дай лише короткий вступ (1 речення) і запитай наступний крок.',
-    'НАПРИКІНЦІ КОЖНОЇ відповіді додай окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — це 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту (напр. «Забронювати Diamond Royal | Що входить у пакет? | Показати wellness»). Пиши їх мовою гостя. Не додавай нічого після цього рядка.',
+    'НАПРИКІНЦІ КОЖНОЇ відповіді додай окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — це 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту. Не додавай нічого після цього рядка.',
     'Це демонстраційний концепт — реальна оплата не проводиться (згадуй лише якщо питають про оплату).',
-    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + (hotel.currency || 'CZK') + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.'
+    'Готель ' + (hotel.stars || 4) + '*. Валюта — ' + (hotel.currency || 'CZK') + '. Рецепція: ' + hotel.phone + ', ' + hotel.email + '.',
+    '⚠️ REMINDER — the whole reply, including SUGGESTIONS, MUST be written in ' + LANG_NAME + ' only.'
   ].filter(Boolean).join('\n');
 }
 
-async function callClaude(messages) {
+async function callClaude(messages, lang) {
   const events = []; let convo = messages.slice(); const MODEL = currentModel();
   for (let step = 0; step < 6; step++) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: buildSystemPrompt(), tools: buildTools(), messages: convo })
+      body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: buildSystemPrompt(lang), tools: buildTools(), messages: convo })
     });
     if (!resp.ok) { const txt = await resp.text(); throw new Error('Anthropic API ' + resp.status + ': ' + txt.slice(0, 300)); }
     const data = await resp.json();
@@ -182,7 +188,7 @@ async function callClaude(messages) {
     const reservation = events.filter(function (e) { return e.tool === 'create_reservation' && e.result && e.result.ok; }).map(function (e) { return e.result; }).pop() || null;
     return { reply: text, events: events, reservation: reservation, mode: 'claude', model: MODEL };
   }
-  return { reply: 'Вибачте, не вдалося завершити запит. Зателефонуйте, будь ласка, на рецепцію: ' + db.publicData().hotel.phone + '.', events: events, mode: 'claude', model: MODEL };
+  return { reply: (lang === 'en' ? 'Sorry, the request could not be completed. Please call the reception: ' : 'Omlouvám se, požadavek se nepodařilo dokončit. Zavolejte prosím na recepci: ') + db.publicData().hotel.phone + '.', events: events, mode: 'claude', model: MODEL };
 }
 
 // --- Роутинг ------------------------------------------------------------------
@@ -207,7 +213,7 @@ const server = http.createServer(async function (req, res) {
     if (M === 'POST' && url === '/api/chat') {
       const body = await readBody(req, 4e6);
       if (!AI_ENABLED) return sendJSON(res, 200, { mode: 'sim' });
-      try { return sendJSON(res, 200, await callClaude(body.messages || [])); }
+      try { return sendJSON(res, 200, await callClaude(body.messages || [], body.lang)); }
       catch (e) { console.error('[chat] ' + e.message); return sendJSON(res, 200, { mode: 'error', error: e.message, fallback: 'sim' }); }
     }
 

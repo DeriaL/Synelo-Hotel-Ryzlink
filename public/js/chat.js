@@ -16,36 +16,18 @@
 
   // --- Локалізація кнопок віджета під мову гостя ---
   var I18N = {
-    uk: { bookThis: 'Забронювати цей', choose: 'Обрати', perNight: 'CZK/ніч', upTo: 'до', guests: 'гостей', nights: 'ноч.', showRooms: 'Показати номери', offers: 'Спецпропозиції', howGet: 'Як дістатися?', placeholder: 'Напишіть повідомлення…' },
-    en: { bookThis: 'Book this one', choose: 'Choose', perNight: 'CZK/night', upTo: 'up to', guests: 'guests', nights: 'nights', showRooms: 'Show rooms', offers: 'Special offers', howGet: 'How to get there?', placeholder: 'Type a message…' },
-    ru: { bookThis: 'Забронировать этот', choose: 'Выбрать', perNight: 'CZK/ночь', upTo: 'до', guests: 'гостей', nights: 'ноч.', showRooms: 'Показать номера', offers: 'Спецпредложения', howGet: 'Как добраться?', placeholder: 'Напишите сообщение…' },
-    de: { bookThis: 'Dieses buchen', choose: 'Wählen', perNight: 'CZK/Nacht', upTo: 'bis zu', guests: 'Gäste', nights: 'Nächte', showRooms: 'Zimmer zeigen', offers: 'Angebote', howGet: 'Anfahrt?', placeholder: 'Nachricht schreiben…' },
-    cs: { bookThis: 'Rezervovat tento', choose: 'Vybrat', perNight: 'CZK/noc', upTo: 'až', guests: 'hostů', nights: 'nocí', showRooms: 'Zobrazit pokoje', offers: 'Nabídky', howGet: 'Jak se dostat?', placeholder: 'Napište zprávu…' },
-    pl: { bookThis: 'Zarezerwuj ten', choose: 'Wybierz', perNight: 'CZK/noc', upTo: 'do', guests: 'gości', nights: 'nocy', showRooms: 'Pokaż pokoje', offers: 'Oferty', howGet: 'Jak dojechać?', placeholder: 'Napisz wiadomość…' }
+    en: { bookThis: 'Book this one', choose: 'Choose', perNight: 'CZK/night', upTo: 'up to', guests: 'guests', nights: 'nights', showRooms: 'Show rooms', offers: 'Special offers', howGet: 'How to get there?', placeholder: 'Type a message…', resv: 'Reservation', guest: 'Guest', total: 'Total' },
+    cs: { bookThis: 'Rezervovat tento', choose: 'Vybrat', perNight: 'CZK/noc', upTo: 'až', guests: 'hostů', nights: 'nocí', showRooms: 'Zobrazit pokoje', offers: 'Nabídky', howGet: 'Jak se dostat?', placeholder: 'Napište zprávu…', resv: 'Rezervace', guest: 'Host', total: 'Celkem' }
   };
-  var chatLang = localStorage.getItem('rz_site_lang') || 'cs';
-  function detectLang(text) {
-    var s = String(text || '').toLowerCase();
-    if (/[a-z]/.test(s) && !/[а-яіїєґ]/i.test(s)) {
-      if (/[äöüß]|ich |und |zimmer|kann |möchte|guten/.test(s)) return 'de';
-      if (/[řěčšžůň]|pokoj|můž|děkuj|chci|dobrý den/.test(s)) return 'cs';
-      if (/[łąężźśćń]|pokój|chcę|dzięk|proszę|dzień dobry/.test(s)) return 'pl';
-      return 'en';
-    }
-    if (/[іїєґ]/.test(s)) return 'uk';
-    if (/[ыэъё]|спасибо|здравств|пожалуйста|добрый|хочу забронировать|можно ли/.test(s)) return 'ru';
-    return chatLang; // невизначено — лишаємо поточну мову
-  }
-  function t(k) { return (I18N[chatLang] || I18N.uk)[k] || I18N.uk[k]; }
+  // Мова кнопок віджета ЗАВЖДИ дорівнює мові сайту (cs/en) — не залежить від мови повідомлення.
+  var SITE_LANG = function () { var l = localStorage.getItem('rz_site_lang'); return (l === 'en') ? 'en' : 'cs'; };
+  var chatLang = SITE_LANG();
+  function t(k) { return (I18N[chatLang] || I18N.cs)[k] || I18N.cs[k]; }
   var BOOKMSG = {
-    uk: ['Хочу забронювати номер', 'Хочу забронювати пакет'],
     en: ['I would like to book the room', 'I would like to book the package'],
-    ru: ['Хочу забронировать номер', 'Хочу забронировать пакет'],
-    de: ['Ich möchte das Zimmer buchen:', 'Ich möchte das Paket buchen:'],
-    cs: ['Chci rezervovat pokoj', 'Chci rezervovat balíček'],
-    pl: ['Chcę zarezerwować pokój', 'Chcę zarezerwować pakiet']
+    cs: ['Chci rezervovat pokoj', 'Chci rezervovat balíček']
   };
-  function bookMsg(i) { return (BOOKMSG[chatLang] || BOOKMSG.uk)[i]; }
+  function bookMsg(i) { return (BOOKMSG[chatLang] || BOOKMSG.cs)[i]; }
 
   /* ---------------- Стилі віджета (самодостатні) ---------------- */
   var css = document.createElement('style');
@@ -137,6 +119,8 @@
     body = panel.querySelector('#rzBody');
     input = panel.querySelector('#rzInput');
     modeEl = panel.querySelector('#rzMode');
+    chatLang = SITE_LANG();               // синхронізувати мову віджета з мовою сайту при старті
+    if (input) input.placeholder = t('placeholder');
     launch.addEventListener('click', toggle);
     panel.querySelector('.rz-close').addEventListener('click', toggle);
     panel.querySelector('#rzSend').addEventListener('click', function () { submit(); });
@@ -258,7 +242,7 @@
   }
 
   function send(text) {
-    chatLang = detectLang(text);
+    chatLang = SITE_LANG(); // мова кнопок = мова сайту, а не мова повідомлення
     if (input) input.placeholder = t('placeholder');
     addMsg('user', text);
     history.push({ role: 'user', content: text });
@@ -267,7 +251,7 @@
     if (aiMode === 'claude') {
       fetch('/api/chat', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: history })
+        body: JSON.stringify({ messages: history, lang: chatLang })
       }).then(function (r) { return r.json(); }).then(function (res) {
         typing(false);
         if (res.mode === 'claude') {
@@ -295,11 +279,11 @@
 
   function renderReservationCard(r) {
     addCard('<div class="rz-conf">' + r.confirmation + '</div>' +
-      '<div class="rz-crow"><span>' + (r.item || 'Бронювання') + '</span><span>' + (r.checkin || '') + (r.checkout ? ' → ' + r.checkout : '') + '</span></div>' +
-      '<div class="rz-crow"><span>Гість</span><span>' + esc(r.name) + '</span></div>' +
-      '<div class="rz-crow rz-ctot"><span>Разом</span><span>' + r.total.toLocaleString('cs-CZ') + ' CZK</span></div>');
+      '<div class="rz-crow"><span>' + (r.item || t('resv')) + '</span><span>' + (r.checkin || '') + (r.checkout ? ' → ' + r.checkout : '') + '</span></div>' +
+      '<div class="rz-crow"><span>' + t('guest') + '</span><span>' + esc(r.name) + '</span></div>' +
+      '<div class="rz-crow rz-ctot"><span>' + t('total') + '</span><span>' + r.total.toLocaleString('cs-CZ') + ' CZK</span></div>');
     logReservation(r, 'chat');
-    logTurn('bot', 'Бронювання підтверджено: ' + r.confirmation, { reservation: r.confirmation });
+    logTurn('bot', 'Rezervace potvrzena: ' + r.confirmation, { reservation: r.confirmation });
   }
 
   function followupChips(lastUser) {
@@ -427,7 +411,7 @@
     if (/вихідн|вікенд|weekend|ріслінг/.test(s)) return 'weekend';
     if (/wellness|велнес|спа|винн.*ванн|оздоров/.test(s)) return 'wellness30';
     if (/класик|classika|мікуловськ/.test(s)) return 'classika';
-    if (/пакет|пропозиц|спец/.test(s)) return 'ANY';
+    if (/пакет|пропозиц|спец|balíč|balic|nabídk|nabidk/.test(s)) return 'ANY';
     return null;
   }
 
@@ -466,7 +450,7 @@
       // 1) відмова / зміна наміру — НЕ бронюємо
       if (isDecline(s)) {
         sim.stage = 'idle'; sim.pending = null;
-        return botSay('Зрозуміла, не бронюю 🙂 Що бажаєте натомість?', [{ label: 'Показати номери' }, { label: 'Спецпропозиції' }, { label: 'Wine Wellness' }]);
+        return botSay('Rozumím, nerezervuji 🙂 Co byste si přál/a místo toho?', [{ label: 'Zobrazit pokoje' }, { label: 'Nabídky' }, { label: 'Wine Wellness' }]);
       }
       // 2) це питання чи новий запит, а не імʼя — обробляємо як звичайне повідомлення
       if (isQuestion(s) || looksLikeIntent(s)) {
@@ -475,8 +459,8 @@
       }
       // 3) не схоже на імʼя — ввічливо перепитуємо
       if (!looksLikeName(text)) {
-        return botSay('Вибачте, не впевнена, що це імʼя 🙂 Напишіть, будь ласка, **імʼя та прізвище** для бронювання — або натисніть «Скасувати».',
-          [{ label: 'Скасувати', action: function () { sim.stage = 'idle'; sim.pending = null; botSay('Скасувала. Чим допомогти?', [{ label: 'Показати номери' }, { label: 'Спецпропозиції' }]); } }]);
+        return botSay('Omlouvám se, nejsem si jistá, že je to jméno 🙂 Napište prosím **jméno a příjmení** pro rezervaci — nebo klikněte na «Zrušit».',
+          [{ label: 'Zrušit', action: function () { sim.stage = 'idle'; sim.pending = null; botSay('Zrušeno. Jak mohu pomoci?', [{ label: 'Zobrazit pokoje' }, { label: 'Nabídky' }]); } }]);
       }
       // 4) все гаразд — бронюємо
       var name = text.trim();
@@ -485,12 +469,12 @@
         checkin: sim.pending.checkin, checkout: sim.pending.checkout,
         adults: sim.pending.adults, children: sim.pending.children
       });
-      if (!out.ok) return botSay(out.error + '\nСпробуймо ще раз — вкажіть, будь ласка, коректні дані.');
+      if (!out.ok) return botSay(out.error + '\nZkusme to znovu — zadejte prosím správné údaje.');
       sim.stage = 'idle'; sim.pending = null;
-      botSay('Готово, ' + firstName(name) + '! ✨ Бронювання підтверджено:');
+      botSay('Hotovo, ' + firstName(name) + '! ✨ Rezervace potvrzena:');
       setTimeout(function () {
         renderReservationCard(out);
-        botSay('Деталі надіслано на пошту (демо). Гарного відпочинку в Ryzlink! 🍷', [{ label: 'Забронювати ще' }, { label: 'Що робити поруч?' }]);
+        botSay('Detaily jsme poslali na e-mail (demo). Příjemný pobyt v Ryzlink! 🍷', [{ label: 'Rezervovat další' }, { label: 'Co dělat v okolí?' }]);
       }, 350);
       return;
     }
@@ -501,12 +485,12 @@
 
     var room = findRoomInText(text);
     var pkg = findPkgInText(text);
-    var wantsBook = /заброн|бронюва|book|номер|проживанн|зупинит|переночув|ніч|поселит/.test(s);
+    var wantsBook = /заброн|бронюва|book|rezerv|ubytov|přenoc|pobyt|номер|проживанн|зупинит|переночув|ніч|поселит/.test(s);
 
     // Привітання / допомога
-    if (/^(привіт|вітаю|добр|hi|hello|hey|доброго)/.test(s) && !wantsBook) {
-      return botSay('Вітаю! 🍷 Я допоможу підібрати номер і забронювати. Скажіть дати та кількість гостей — або оберіть варіант нижче.',
-        [{ label: 'Підібрати номер' }, { label: 'Спецпропозиції' }]);
+    if (/^(ahoj|dobr|zdrav|vít|čau|hi|hello|hey)/.test(s) && !wantsBook) {
+      return botSay('Vítejte! 🍷 Pomohu vybrat pokoj a zarezervovat. Řekněte termín a počet hostů — nebo zvolte možnost níže.',
+        [{ label: 'Vybrat pokoj' }, { label: 'Nabídky' }]);
     }
 
     // Пакети
@@ -517,9 +501,9 @@
       }
       var p = BK.getPackage(pkg);
       sim.pending = { packageId: pkg, checkin: sim.slots.checkin, adults: sim.slots.adults };
-      botSay('**' + p.name + '** — ' + p.desc + '\n\nЦіна: **' + p.price.toLocaleString('cs-CZ') + ' CZK** за ' + p.nights + ' ноч.');
+      botSay('**' + p.name + '** — ' + p.desc + '\n\nCena: **' + p.price.toLocaleString('cs-CZ') + ' CZK** za ' + p.nights + ' nocí.');
       sim.stage = 'awaiting_name';
-      return botSay('Забронюймо? Напишіть, будь ласка, **імʼя та прізвище** для бронювання.', [{ label: 'Спочатку номери' , action:function(){ sim.stage='idle'; recommendRooms(); } }]);
+      return botSay('Zarezervujeme? Napište prosím **jméno a příjmení** pro rezervaci.', [{ label: 'Nejdřív pokoje' , action:function(){ sim.stage='idle'; recommendRooms(); } }]);
     }
 
     // Інфо-питання — відповідь із бази знань (спарсено з сайту)
@@ -528,7 +512,7 @@
       if (kb.length) {
         var ans = kb[0].content;
         if (kb.length > 1 && kb[1].content !== kb[0].content) ans += '\n\n' + kb[1].content;
-        botSay(ans, [{ label: 'Підібрати номер' }, { label: 'Забронювати' }]);
+        botSay(ans, [{ label: 'Vybrat pokoj' }, { label: 'Rezervovat' }]);
         return;
       }
     }
@@ -537,8 +521,8 @@
     if (room) {
       if (!sim.slots.checkin || !sim.slots.checkout) {
         sim.pending = { roomId: room, adults: sim.slots.adults, children: sim.slots.children };
-        return botSay('Чудовий вибір — **' + BK.getRoom(room).name + '**! На які **дати** плануєте (заїзд і виїзд)?',
-          [{ label: 'На вихідні', action: function () { send('на вихідні, ' + BK.getRoom(room).name); } }]);
+        return botSay('Skvělá volba — **' + BK.getRoom(room).name + '**! Na jaké **termíny** plánujete (příjezd a odjezd)?',
+          [{ label: 'Na víkend', action: function () { send('na víkend, ' + BK.getRoom(room).name); } }]);
       }
       return offerRoom(room);
     }
@@ -550,19 +534,19 @@
 
     // Хоче бронювати, але бракує дат
     if (wantsBook) {
-      if (!sim.slots.checkin) return botSay('З радістю забронюю! Підкажіть, будь ласка, **дати** (заїзд – виїзд) і скільки вас буде.',
-        [{ label: 'На вихідні, удвох', action: function () { send('на вихідні, удвох'); } }]);
+      if (!sim.slots.checkin) return botSay('S radostí zarezervuji! Řekněte prosím **termíny** (příjezd – odjezd) a počet osob.',
+        [{ label: 'Na víkend, ve dvou', action: function () { send('na víkend, ve dvou'); } }]);
       return showAvailability();
     }
 
     // Підбір номера
-    if (/підбер|підібр|порад|який номер|рекоменд|варіант|обрати|номер/.test(s)) {
+    if (/підбер|підібр|порад|який номер|рекоменд|варіант|обрати|номер|vybrat pokoj|zobrazit pokoj|doporuč|doporuc|který pokoj|pokoje/.test(s)) {
       return recommendRooms();
     }
 
     // Fallback
-    botSay('Я тут, щоб допомогти з вибором і бронюванням у Ryzlink. Можу:\n• підібрати **номер** за датами й гостями\n• розповісти про **wine-wellness**, **ресторан**, **дегустації**\n• **забронювати** проживання прямо тут',
-      [{ label: 'Підібрати номер' }, { label: 'Спецпропозиції' }, { label: 'Wine Wellness' }, { label: 'Як дістатися?' }]);
+    botSay('Jsem tu, abych pomohla s výběrem a rezervací v Ryzlink. Mohu:\n• vybrat **pokoj** podle termínů a hostů\n• povědět o **wine-wellness**, **restauraci**, **degustacích**\n• **zarezervovat** pobyt přímo tady',
+      [{ label: 'Vybrat pokoj' }, { label: 'Nabídky' }, { label: 'Wine Wellness' }, { label: 'Jak se dostat?' }]);
   }
 
   function botSay(text, chips) {
@@ -573,26 +557,26 @@
   }
 
   function recommendRooms() {
-    botSay('Ось наші номери — від затишних класичних до апартаменту з панорамною терасою:');
+    botSay('Zde jsou naše pokoje — od útulných klasických po apartmá s panoramatickou terasou:');
     setTimeout(function () {
       DATA.rooms.forEach(function (r) {
         addCard(roomImg(r.img) +
-          '<div class="rz-crow"><b>' + r.name + '</b><span>' + r.price.toLocaleString('cs-CZ') + ' CZK/ніч</span></div>' +
-          '<div style="color:#6f635a;margin:4px 0 8px">' + r.short + ' · до ' + r.capacity + ' гостей</div>' +
-          '<button class="rz-chip" data-pickroom="' + r.id + '">Обрати ' + r.name + '</button>');
+          '<div class="rz-crow"><b>' + r.name + '</b><span>' + r.price.toLocaleString('cs-CZ') + ' CZK/noc</span></div>' +
+          '<div style="color:#6f635a;margin:4px 0 8px">' + r.short + ' · až ' + r.capacity + ' hostů</div>' +
+          '<button class="rz-chip" data-pickroom="' + r.id + '">Vybrat ' + r.name + '</button>');
       });
       bindPick();
-      botSay('Підкажіть **дати** — і я перевірю наявність та ціну саме на ваш період.');
+      botSay('Řekněte **termíny** — a já ověřím dostupnost a cenu přesně na vaše období.');
     }, 350);
   }
 
   function listPackages() {
-    botSay('Наші готові пакети вражень:');
+    botSay('Naše hotové balíčky zážitků:');
     setTimeout(function () {
       DATA.packages.forEach(function (p) {
         addCard('<div class="rz-crow"><b>' + p.name + '</b><span>' + p.price.toLocaleString('cs-CZ') + ' CZK</span></div>' +
           '<div style="color:#6f635a;margin:4px 0 8px">' + p.desc + '</div>' +
-          '<button class="rz-chip" data-pickpkg="' + p.id + '">Обрати «' + p.name + '»</button>');
+          '<button class="rz-chip" data-pickpkg="' + p.id + '">Vybrat «' + p.name + '»</button>');
       });
       bindPick();
     }, 350);
@@ -601,17 +585,17 @@
   function showAvailability() {
     var res = BK.searchAvailability(sim.slots);
     if (!res.ok) return botSay(res.error);
-    botSay('Ось що вільно на **' + res.checkin + ' → ' + res.checkout + '** (' + res.guests + ' гост., ' + res.nights + ' ноч.):');
+    botSay('Zde je volné na **' + res.checkin + ' → ' + res.checkout + '** (' + res.guests + ' hostů, ' + res.nights + ' nocí):');
     setTimeout(function () {
       var any = false;
       res.options.forEach(function (o) {
         if (!o.available) return; any = true;
         addCard(roomImg(o.img) +
           '<div class="rz-crow"><b>' + o.name + '</b><span>' + o.total.toLocaleString('cs-CZ') + ' CZK</span></div>' +
-          '<div style="color:#6f635a;margin:4px 0 8px">' + res.nights + ' ноч. · до ' + o.capacity + ' гостей' + (o.note ? ' · <span style="color:#a3182a">' + o.note + '</span>' : '') + '</div>' +
-          '<button class="rz-chip" data-pickroom="' + o.roomId + '">Забронювати цей</button>');
+          '<div style="color:#6f635a;margin:4px 0 8px">' + res.nights + ' nocí · až ' + o.capacity + ' hostů' + (o.note ? ' · <span style="color:#a3182a">' + o.note + '</span>' : '') + '</div>' +
+          '<button class="rz-chip" data-pickroom="' + o.roomId + '">Rezervovat tento</button>');
       });
-      if (!any) return botSay('На жаль, на ці дати вільних номерів немає. Спробуймо інші дати?');
+      if (!any) return botSay('Bohužel na tyto termíny nejsou volné pokoje. Zkusíme jiné termíny?');
       bindPick();
     }, 350);
   }
@@ -619,11 +603,11 @@
   function offerRoom(roomId) {
     var res = BK.searchAvailability(sim.slots);
     var opt = res.ok && res.options.filter(function (o) { return o.roomId === roomId; })[0];
-    if (!opt || !opt.available) return botSay('Саме цей номер на обрані дати недоступний 😕. Показати альтернативи?', [{ label: 'Так, показати', action: showAvailability }]);
+    if (!opt || !opt.available) return botSay('Tento pokoj je na zvolené termíny nedostupný 😕. Zobrazit alternativy?', [{ label: 'Ano, zobrazit', action: showAvailability }]);
     sim.pending = { roomId: roomId, checkin: sim.slots.checkin, checkout: sim.slots.checkout, adults: sim.slots.adults, children: sim.slots.children };
-    botSay('**' + opt.name + '** на ' + res.checkin + ' → ' + res.checkout + ' (' + res.nights + ' ноч.) — **' + opt.total.toLocaleString('cs-CZ') + ' CZK**.');
+    botSay('**' + opt.name + '** na ' + res.checkin + ' → ' + res.checkout + ' (' + res.nights + ' nocí) — **' + opt.total.toLocaleString('cs-CZ') + ' CZK**.');
     sim.stage = 'awaiting_name';
-    botSay('Щоб завершити бронювання, напишіть, будь ласка, **імʼя та прізвище**.', [{ label: 'Відкрити форму', action: function () { window.RyzlinkBookingUI.open({ roomId: roomId, checkin: sim.slots.checkin, checkout: sim.slots.checkout }); } }]);
+    botSay('Pro dokončení rezervace napište prosím **jméno a příjmení**.', [{ label: 'Otevřít formulář', action: function () { window.RyzlinkBookingUI.open({ roomId: roomId, checkin: sim.slots.checkin, checkout: sim.slots.checkout }); } }]);
   }
 
   function bindPick() {
@@ -632,10 +616,10 @@
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-pickroom');
         if (!sim.slots.checkin || !sim.slots.checkout) {
-          sim.pending = { roomId: id }; addMsg('user', 'Обираю: ' + BK.getRoom(id).name);
-          return botSay('На які **дати**? (заїзд – виїзд)', [{ label: 'На вихідні', action: function () { send('на вихідні'); } }]);
+          sim.pending = { roomId: id }; addMsg('user', 'Vybírám: ' + BK.getRoom(id).name);
+          return botSay('Na jaké **termíny**? (příjezd – odjezd)', [{ label: 'Na víkend', action: function () { send('na víkend'); } }]);
         }
-        addMsg('user', 'Бронюю: ' + BK.getRoom(id).name);
+        addMsg('user', 'Rezervuji: ' + BK.getRoom(id).name);
         offerRoom(id);
       });
     });
@@ -643,11 +627,11 @@
       if (b._bound) return; b._bound = true;
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-pickpkg');
-        addMsg('user', 'Обираю пакет: ' + BK.getPackage(id).name);
+        addMsg('user', 'Vybírám balíček: ' + BK.getPackage(id).name);
         var p = BK.getPackage(id);
         sim.pending = { packageId: id, checkin: sim.slots.checkin, adults: sim.slots.adults };
         sim.stage = 'awaiting_name';
-        botSay('Чудово! Пакет **' + p.name + '** — ' + p.price.toLocaleString('cs-CZ') + ' CZK. Напишіть **імʼя та прізвище** для бронювання.');
+        botSay('Výborně! Balíček **' + p.name + '** — ' + p.price.toLocaleString('cs-CZ') + ' CZK. Napište **jméno a příjmení** pro rezervaci.');
       });
     });
   }
