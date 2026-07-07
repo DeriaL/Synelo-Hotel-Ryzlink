@@ -8,7 +8,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Тека даних. На Railway/хмарі задаємо DATA_DIR (або том монтується у
+// RAILWAY_VOLUME_MOUNT_PATH) → db.json лягає на ПОСТІЙНИЙ диск і переживає редеплой.
+// Локально — просто ./data поряд з проєктом.
+const DATA_DIR = process.env.DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 const DB_PATH = path.join(DATA_DIR, 'db.json');
 const SEED = require('./public/js/data.js');
 

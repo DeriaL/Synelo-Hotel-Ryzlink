@@ -1,0 +1,12 @@
+{
+  "name": "synelo-hotel-ryzlink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Synelo Studio — Hotel Ryzlink concept demo (zero-dependency Node server, hybrid AI concierge, bilingual CZ/EN site + admin).",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
