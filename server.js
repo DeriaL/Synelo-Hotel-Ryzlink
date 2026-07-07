@@ -144,8 +144,13 @@ function buildSystemPrompt(lang) {
   const s = db.settings(); const hotel = db.publicData().hotel;
   const NAMES = { cs: 'češtině (Czech)', en: 'English', uk: 'ukrajinštině (Ukrainian)', ru: 'ruštině (Russian)', de: 'němčině (German)', pl: 'polštině (Polish)' };
   const hint = NAMES[lang] ? (' Підказка інтерфейсу: ймовірна мова останнього повідомлення — ' + NAMES[lang] + '.') : '';
+  const _now = new Date(), _pad = function (n) { return ('0' + n).slice(-2); };
+  const _fmt = function (d) { return _pad(d.getDate()) + '.' + _pad(d.getMonth() + 1) + '.' + d.getFullYear(); };
+  let _toSat = (6 - _now.getDay() + 7) % 7; if (_toSat === 0) _toSat = 7;
+  const _sat = new Date(_now.getTime() + _toSat * 86400000), _sun = new Date(_sat.getTime() + 86400000);
   return [
     'МОВА ВІДПОВІДІ (важливо): відповідай ТІЄЮ САМОЮ мовою, якою гість написав своє ОСТАННЄ повідомлення. Гість може перемикати мови між повідомленнями — завжди дзеркаль мову останнього повідомлення (і основний текст, і рядок SUGGESTIONS).' + hint,
+    'ДАТА: сьогодні ' + _fmt(_now) + '. Це справжня поточна дата. Пропонуй і використовуй ЛИШЕ майбутні дати (сьогодні або пізніше) — НІКОЛИ не пропонуй минулі дати чи минулі місяці. Формат дат — DD.MM.YYYY. «Найближчі вихідні» = ' + _fmt(_sat) + '–' + _fmt(_sun) + '. У рядку SUGGESTIONS та у пропозиціях дат став РЕАЛЬНІ майбутні дати цього формату (напр. саме ' + _fmt(_sat) + '–' + _fmt(_sun) + ' для найближчих вихідних).',
     s.ai.persona,
     s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (враховуй першими): ' + s.ai.priorities) : '',
     'Для БУДЬ-ЯКОГО питання про готель, послуги, ціни, години, правила чи околиці — спершу виклич search_knowledge і відповідай на основі знайденого. Якщо у базі знань нічого немає — чесно скажи, що уточниш деталь на рецепції (' + hotel.phone + '), не вигадуй.',

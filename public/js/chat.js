@@ -107,7 +107,12 @@
     '.rz-foot textarea:focus{outline:none;border-color:#c6a04e;box-shadow:0 0 0 3px rgba(198,160,78,.2)}',
     '.rz-send{background:#7d1220;border:none;color:#fff;width:42px;height:42px;border-radius:12px;cursor:pointer;flex:none;display:grid;place-items:center}',
     '.rz-send:hover{background:#5c1420}.rz-send svg{width:20px;height:20px}',
-    '@media(max-width:520px){.rz-panel{right:0;bottom:0;width:100vw;height:100vh;max-height:100vh;border-radius:0}}'
+    '@media(max-width:560px){' +
+      '.rz-launch{right:16px;bottom:16px}' +
+      '.rz-panel{inset:0;width:100vw;max-width:100vw;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0}' +
+      '.rz-head{padding-top:calc(16px + env(safe-area-inset-top))}' +
+      '.rz-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom))}' +
+    '}'
   ].join('');
   document.head.appendChild(css);
 
