@@ -24,20 +24,21 @@
   }
 
   // Приймає 'YYYY-MM-DD', 'DD.MM.YYYY' або Date. Повертає Date (UTC-опівночі) або null.
+  // Приймає лише 'YYYY-M-D' / 'D.M.YYYY' (та Date). Валідує календарно (без rollover), завжди UTC-опівніч.
   function parseDate(v) {
     if (v instanceof Date) return isNaN(v) ? null : v;
     if (!v) return null;
     var s = String(v).trim();
-    var m;
-    if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) {
-      return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-    }
-    if ((m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/))) {
-      return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
-    }
-    var d = new Date(s);
-    return isNaN(d) ? null : d;
+    var m, y, mo, da;
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) { y = +m[1]; mo = +m[2]; da = +m[3]; }
+    else if ((m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/))) { y = +m[3]; mo = +m[2]; da = +m[1]; }
+    else return null;
+    var d = new Date(Date.UTC(y, mo - 1, da));
+    // round-trip: відхиляємо календарно неможливі дати (напр. 31.02, 45.13)
+    if (d.getUTCFullYear() !== y || d.getUTCMonth() !== mo - 1 || d.getUTCDate() !== da) return null;
+    return d;
   }
+  function todayUTC() { var n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())); }
 
   function fmtDate(d) {
     var dd = ('0' + d.getUTCDate()).slice(-2);
@@ -77,6 +78,7 @@
     var guests = adults + children;
 
     if (!ci || !co) return { ok: false, error: 'Zadejte prosím správné datum příjezdu a odjezdu (např. 12.08.2026).' };
+    if (ci < todayUTC()) return { ok: false, error: 'Datum příjezdu je v minulosti. Zvolte prosím budoucí termín.' };
     var nights = nightsBetween(ci, co);
     if (nights <= 0) return { ok: false, error: 'Datum odjezdu musí být pozdější než datum příjezdu.' };
 
@@ -136,6 +138,11 @@
     var children = Math.max(0, parseInt(input.children, 10) || 0);
     var guests = adults + children;
 
+    // Guard минулих дат — для обох гілок (номер і пакет).
+    var t0 = todayUTC();
+    if (ci && ci < t0) return { ok: false, error: 'Datum příjezdu je v minulosti. Zvolte prosím budoucí termín.' };
+    if (co && co < t0) return { ok: false, error: 'Datum odjezdu je v minulosti. Zvolte prosím budoucí termín.' };
+
     var nights, total, itemName;
     if (pkg) {
       nights = pkg.nights;
@@ -151,7 +158,8 @@
       itemName = room.name;
     }
 
-    var conf = 'RZL-' + (hashStr(name + '|' + (input.checkin || '') + '|' + (room ? room.id : pkg.id))
+    // Стабільний і практично унікальний код: нормалізовані дати + гості + тип позиції.
+    var conf = 'RZL-' + (hashStr([name, (ci ? fmtDate(ci) : ''), (co ? fmtDate(co) : ''), adults, children, (room ? 'R:' + room.id : 'P:' + pkg.id)].join('|'))
       .toString(36).toUpperCase() + '000000').slice(0, 6);
 
     return {
@@ -214,7 +222,7 @@
     var list = DATA.knowledge || [];
     if (!list.length) return [];
     var seen = {}, qs = [];
-    words(query).forEach(function (w) { if (w.length < 3 || STOP[w]) return; var s = ukstem(w); if (s.length < 2 || seen[s]) return; seen[s] = 1; qs.push(s); });
+    words(query).forEach(function (w) { if (w.length < 3 || STOP[w] || !/\p{L}/u.test(w)) return; var s = ukstem(w); if (s.length < 2 || seen[s]) return; seen[s] = 1; qs.push(s); });
     if (!qs.length) return [];
     var scored = list.map(function (e) {
       var kw = (e.keywords || []).join(' ').toLowerCase();

@@ -75,13 +75,24 @@ function load() {
   return db;
 }
 
-function save() {
+function saveNow() {
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     const tmp = DB_PATH + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(db, null, 2), 'utf8');
     fs.renameSync(tmp, DB_PATH);
   } catch (e) { console.error('[db] save failed:', e.message); }
+}
+// Синхронне збереження — для контенту адмінки та бронювань (важлива durability).
+function save() { saveNow(); }
+// Дебаунс — для частих логів переписки, щоб потік запитів не блокував event-loop щоразу.
+let _saveTimer = null, _savePending = false;
+function saveSoon() {
+  if (_saveTimer) { _savePending = true; return; }
+  _saveTimer = setTimeout(function () {
+    _saveTimer = null; saveNow();
+    if (_savePending) { _savePending = false; saveSoon(); }
+  }, 500);
 }
 
 function get() { return db; }
@@ -122,6 +133,14 @@ function logTurn(sessionId, turn) {
   if (!sessionId) sessionId = 'anon';
   const now = Date.now();
   if (!db.conversations[sessionId]) {
+    // Ліміт кількості конверсацій — евіктимо найстаріші (захист від флуду/розростання файлу).
+    const keys = Object.keys(db.conversations);
+    if (keys.length >= 800) {
+      keys.map(function (k) { return { k: k, t: db.conversations[k].lastAt || 0 }; })
+        .sort(function (a, b) { return a.t - b.t; })
+        .slice(0, keys.length - 799)
+        .forEach(function (o) { delete db.conversations[o.k]; });
+    }
     db.conversations[sessionId] = { id: sessionId, startedAt: now, lastAt: now, mode: turn.mode || 'sim', turns: [], reservations: [] };
   }
   const c = db.conversations[sessionId];
@@ -130,7 +149,7 @@ function logTurn(sessionId, turn) {
   c.turns.push({ role: turn.role, text: turn.text || '', meta: turn.meta || null, at: now });
   // тримаємо розумний ліміт
   if (c.turns.length > 400) c.turns = c.turns.slice(-400);
-  save();
+  saveSoon();
   return c;
 }
 

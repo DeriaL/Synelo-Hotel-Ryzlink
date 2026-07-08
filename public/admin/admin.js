@@ -103,7 +103,7 @@
       method: method,
       headers: Object.assign({ 'Content-Type': 'application/json' }, TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}),
       body: body ? JSON.stringify(body) : undefined
-    }).then(function (r) { if (r.status === 401) { showLogin(); throw new Error('unauthorized'); } return r.json(); });
+    }).then(function (r) { if (r.status === 401) { showLogin(); throw new Error('unauthorized'); } return r.text().then(function (txt) { try { return txt ? JSON.parse(txt) : {}; } catch (e) { throw new Error('bad_response'); } }); });
   }
   function toast(msg, type) {
     var el = $('#toast'); el.textContent = msg; el.className = 'toast show ' + (type || '');
@@ -144,7 +144,7 @@
       .then(function (d) { if (d.ok) { TOKEN = d.token; localStorage.setItem('rz_admin_token', TOKEN); $('#loginErr').textContent = ''; boot(); } else $('#loginErr').textContent = d.error || t('login_err'); })
       .catch(function () { $('#loginErr').textContent = t('net_err'); });
   });
-  $('#logoutBtn').addEventListener('click', function () { localStorage.removeItem('rz_admin_token'); TOKEN = ''; showLogin(); });
+  $('#logoutBtn').addEventListener('click', function () { if (dirty && !confirm(AL === 'en' ? 'You have unsaved changes. Discard and log out?' : 'Máte neuložené změny. Zahodit a odhlásit se?')) return; localStorage.removeItem('rz_admin_token'); TOKEN = ''; setDirty(false); showLogin(); });
 
   /* ---------- Навігація ---------- */
   var pendingConvoId = null;
@@ -162,21 +162,28 @@
   var _sideBackdrop = $('#sideBackdrop'); if (_sideBackdrop) _sideBackdrop.addEventListener('click', closeSidebar);
   document.querySelectorAll('#sideNav button').forEach(function (b) { b.addEventListener('click', function () { goTab(b.getAttribute('data-tab')); closeSidebar(); }); });
   $('#saveBtn').addEventListener('click', saveAll);
+  // Захист від втрати незбережених правок при закритті/оновленні вкладки.
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   function boot() {
     showApp();
     Promise.all([api('GET', '/admin/api/content'), api('GET', '/admin/api/overview')])
-      .then(function (r) { content = r[0]; overview = r[1]; setDirty(false); applyStatic(); render(); }).catch(function () {});
+      .then(function (r) { content = r[0]; overview = r[1]; setDirty(false); applyStatic(); render(); })
+      .catch(function (e) { if (String(e && e.message) !== 'unauthorized') { toast(AL === 'en' ? 'Failed to load data — check connection' : 'Nepodařilo se načíst data — zkontrolujte připojení', 'err'); } });
   }
+  var _saving = false;
   function saveAll() {
+    if (_saving) return; // без дубль-сейву при швидких кліках
+    _saving = true; $('#saveBtn').disabled = true;
     content.rooms.forEach(function (r, i) { r.order = i; });
     content.packages.forEach(function (p, i) { p.order = i; });
     content.gallery.forEach(function (g, i) { g.order = i; });
     if (content.knowledge) content.knowledge.forEach(function (k, i) { k.order = i; });
     api('PUT', '/admin/api/content', content).then(function (d) {
       if (d.ok) { setDirty(false); toast(t('saved_ok'), 'ok'); api('GET', '/admin/api/overview').then(function (o) { overview = o; }); }
-      else toast(t('save_err'), 'err');
-    }).catch(function () { toast(t('save_err'), 'err'); });
+      else { toast(t('save_err'), 'err'); $('#saveBtn').disabled = false; }
+    }).catch(function () { toast(t('save_err'), 'err'); $('#saveBtn').disabled = false; })
+      .then(function () { _saving = false; });
   }
 
   /* ---------- Поля ---------- */

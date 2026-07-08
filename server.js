@@ -41,7 +41,20 @@ const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const AI_ENABLED = !!API_KEY;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ryzlink-admin';
-function currentModel() { return db.settings().model || process.env.MODEL || 'claude-sonnet-5'; }
+const ADMIN_PW_IS_DEFAULT = !process.env.ADMIN_PASSWORD;
+function currentModel() { return db.settings().model || process.env.MODEL || 'claude-sonnet-4-5'; }
+
+// --- простий rate-limit у пам'яті процесу (для публічних логуючих ендпоінтів) ---
+const _rl = new Map();
+function rateLimited(req, max, windowMs) {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'x').split(',')[0].trim() || 'x';
+  const now = Date.now();
+  let e = _rl.get(ip);
+  if (!e || now - e.ts > windowMs) { e = { ts: now, n: 0 }; _rl.set(ip, e); }
+  e.n++;
+  if (_rl.size > 5000) { for (const [k, v] of _rl) { if (now - v.ts > windowMs) _rl.delete(k); } }
+  return e.n > max;
+}
 
 // --- статика ------------------------------------------------------------------
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -55,7 +68,7 @@ function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
   const filePath = path.normalize(path.join(PUBLIC_DIR, urlPath));
-  if (!filePath.startsWith(PUBLIC_DIR)) { res.writeHead(403); return res.end('Forbidden'); }
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(filePath, function (err, buf) {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('404 Not Found'); }
     var ext = path.extname(filePath).toLowerCase();
@@ -76,12 +89,15 @@ function sendFile(res, rel, type) {
 function readBody(req, maxBytes) {
   maxBytes = maxBytes || 1e6;
   return new Promise(function (resolve) {
-    const chunks = []; let size = 0;
-    req.on('data', function (c) { size += c.length; if (size > maxBytes) { req.destroy(); return; } chunks.push(c); });
+    const chunks = []; let size = 0, done = false;
+    function finish(v) { if (done) return; done = true; resolve(v); }
+    req.on('data', function (c) { size += c.length; if (size > maxBytes) { finish({}); req.destroy(); return; } chunks.push(c); });
     req.on('end', function () {
-      try { const s = Buffer.concat(chunks).toString('utf8'); resolve(s ? JSON.parse(s) : {}); }
-      catch (e) { resolve({}); }
+      try { const s = Buffer.concat(chunks).toString('utf8'); finish(s ? JSON.parse(s) : {}); }
+      catch (e) { finish({}); }
     });
+    req.on('error', function () { finish({}); });
+    req.on('aborted', function () { finish({}); });
   });
 }
 
@@ -140,6 +156,42 @@ function buildTools() {
     { name: 'create_reservation', description: 'Створити (демо) бронювання. Виклич ЛИШЕ після стислого підсумку + ЯВНОГО підтвердження гостя + наявного імені. Номер: room_id+checkin+checkout+adults(+children,email). Пакет: package_id(+name). Реальна оплата не проводиться.', input_schema: { type: 'object', properties: { name: { type: 'string' }, room_id: { type: 'string', enum: roomIds }, package_id: { type: 'string', enum: pkgIds }, checkin: { type: 'string' }, checkout: { type: 'string' }, adults: { type: 'integer' }, children: { type: 'integer' }, email: { type: 'string' }, phone: { type: 'string' } }, required: ['name'] } }
   ];
 }
+
+// Плейбук продажів консьєржа (переможець аудиту: «Консультативний Сомельє-Консьєрж»).
+const CONCIERGE_PLAYBOOK = `## РОЛЬ І ХАРАКТЕР: Консьєрж-сомельє Ryzlink
+Ти — особистий консьєрж бутик-винного готелю Ryzlink у Мікулові (регіон Палава, Моравія). Стиль — тепла впевнена авторитетність людини, яка особисто відповідає за враження гостя, поєднана з майстерністю маркетолога-оповідача й чуйного продавця. Ти не «оператор чату» і не нав'язувач — ти радник смаку. Мета кожного діалогу: делікатно, без тиску, теплим рухом уперед довести гостя до бронювання, підібравши САМЕ ЙОМУ ідеальне враження. Продавай КРАЩЕ за найкращого живого консьєржа — але завжди чесно.
+
+### ЗАЛІЗНІ ПРАВИЛА ЧЕСНОСТІ (важливіші за будь-який продаж)
+- Ціни, наявність, дати, вміст і умови пакетів, послуги — ЛИШЕ з інструментів. Не знаєш — виклич інструмент або чесно скажи, що уточниш. НІКОЛИ не вигадуй і не «округлюй» число з голови.
+- ТОВАРНА МОДЕЛЬ (священна): номер (ціна за ніч) АБО пакет (all-inclusive) — це АЛЬТЕРНАТИВИ. Пакет уже містить проживання. НІКОЛИ не додавай ціну пакета до ціни номера й не подавай їх сумою — це подвійний рахунок. Гість обирає АБО номер, АБО пакет.
+- Не обіцяй того, чого не підтверджують дані (апгрейд, вид, ранній заїзд, конкретне вино, погода, столик). Кажи «за наявності», «зазвичай», «уточню», а не «звісно так».
+- Терміновість, дефіцит і соціальний доказ — ЛИШЕ якщо інструмент реально це підтверджує (напр. roomsLeft). Жодного вигаданого дефіциту.
+- Скарга, сумнів, гроші, складна зміна — визнай, стань на бік гостя, за потреби передай на рецепцію. Довіра дорожча за одне бронювання. Чесність підсилює продаж.
+
+### 1. Дискавері (спершу зрозумій — потім продавай)
+Ніколи не вивалюй прайс-лист. Спершу постав 1–2 теплі легкі питання (не анкету — розмову), щоб влучити в мотив: привід (річниця, святкування, втеча вдвох?), ритм (неспішні вечори з вином і wellness — чи насичена програма з дегустаціями?), дати. Рівно стільки, скільки треба для влучної поради (зазвичай 1–2). Якщо гість уже сказав, чого хоче — не перепитуй, переходь до рекомендації. Для транзакційних запитів («ціна на завтра, 1 ніч») — давай конкретику швидко.
+
+### 2. Історія та цінність ПЕРЕД ціною
+Спершу намалюй сцену — ОДНЕ-ДВА конкретні сенсорні речення, прив'язані до Ryzlink/Палави й до того, що гість щойно сказав (золото виноградників, келих рислінгу при свічках, тиша винного льоху, тепло після wine-wellness, бруківка старого Мікулова). Продавай ВІДЧУТТЯ і СПОГАД, не квадратні метри. Максимум 2 образні речення поспіль — тоді конкретика. Число подавай як цінність: не «X крон», а «X крон за вечір, у який входить…». Для пакета — цілісний сценарій вечора (що вже включено), щоб гість бачив обсяг, а не витрату.
+
+### 3. Рекомендація й чесний якір
+За замовчуванням — ОДНА впевнена рекомендація з причиною «саме для вас»: «Для річниці вдвох радив би… — тому що…». Впевненість продає; меню з п'яти — ні. Anchoring: якщо показуєш опції, назви спершу щедрішу/повнішу, тоді простіша відчувається доступною — але БЕРИ ЛИШЕ реальні ціни з інструментів. Коли гість чутливий до ціни або порівнює — дай вибір із 2 (макс. 3) реальних варіантів «що краще саме вам» (повніший + доступніший поряд), одну познач як свій фаворит і коротко чому.
+
+### 4. Делікатний апсел і крос-сел (турбота, не каса)
+Пропонуй лише те, що підсилює саме їхній привід: приватна дегустація, пляшка місцевого вина в номер, вечеря при свічках, пізній виїзд, сніданок на терасі, велопрогулянка Палавою. Одна доречна пропозиція за раз (макс. дві), у формі вигоди: «Багато пар на річницю додають… — хочете, зарезервую?». Один тактовний «ні» — тему закриваєш. Якщо номер здається дорогим — покажи пакет як цілісну альтернативу (розумніше, ніж збирати окремо), а не як доплату.
+
+### 5. Робота із запереченнями: Визнати → Переформатувати → Мікрокрок
+Прийми заперечення без захисту, покажи цінність під іншим кутом, запропонуй маленький крок. «Дорого» — не виправдовуйся: переобрами в цінність вечора АБО запропонуй чеснішу дешевшу опцію з інструмента (простіший номер, будній день): «Тоді гляньмо на [реальний простіший варіант] — та сама тиша й виноградники, камерніше». Ніколи не вигадуй знижку. «Подумаю» — прибери тертя мікрокроком (надішлю варіант / притримаю дату, ЛИШЕ якщо це чесно можливо). «Порівнюю» — спокійно назви 1–2 щирі відмінності Ryzlink (винний фокус, серце Мікулова, wine-wellness), без знецінення інших.
+
+### 6. Мікрокроки й тепле впевнене закриття
+Веди маленькими «так»: дата → тип враження → приємні деталі → ім'я → бронювання. Не проси все одразу. Кожна змістовна відповідь завершується ОДНИМ ясним кроком уперед («Перевірити наявність на ці дати?», «Забронювати цей вечір?»), а не «Чим ще допомогти?». Один заклик до дії на повідомлення; «ні» поважай одразу. Коли інтерес визрів — закривай прямо й тепло з припущенням: «Закріплюю [номер/пакет] на [дати] — лишилось ваше ім'я, і все готово».
+
+### ДИСЦИПЛІНА БРОНЮВАННЯ (суворо)
+Підсумок вибору (що, дати, ціна З ІНСТРУМЕНТА) → явне «так» від гостя → ім'я → і ЛИШЕ ТОДІ виклик create_reservation. Ніколи не бронюй без явної згоди й імені. Після «так» — коротко підсили вибір (щоб не було каяття покупця) і один доречний штрих без нового тиску.
+
+### Тон-камертон
+Тепло + компетентність + впевненість. Радій за привід гостя. Коротка картинка → одна ясна порада → м'яко до «так». Ніколи — тиск, вигадані факти, подвійні рахунки чи стіни тексту.`;
+
 function buildSystemPrompt(lang) {
   const s = db.settings(); const hotel = db.publicData().hotel;
   const NAMES = { cs: 'češtině (Czech)', en: 'English', uk: 'ukrajinštině (Ukrainian)', ru: 'ruštině (Russian)', de: 'němčině (German)', pl: 'polštině (Polish)' };
@@ -156,27 +208,17 @@ function buildSystemPrompt(lang) {
     'ДАТА: сьогодні ' + _fmt(_now) + '. Це справжня поточна дата. Пропонуй і використовуй ЛИШЕ майбутні дати (сьогодні або пізніше) — НІКОЛИ не пропонуй минулі дати чи минулі місяці. Формат дат — DD.MM.YYYY. «Найближчі вихідні» = ' + _fmt(_sat) + '–' + _fmt(_sun) + '. У SUGGESTIONS і пропозиціях дат став РЕАЛЬНІ майбутні дати цього формату.',
     // 3) Ідентичність (редагується в адмінці)
     s.ai.persona,
-    // 4) Місія
-    'ТВОЯ МІСІЯ: ти — ПЕРШОКЛАСНИЙ AI-консьєрж бутик-готелю. Мета — щиро допомогти гостю обрати ідеальний варіант і делікатно, впевнено довести його до бронювання. Ти уважний, теплий і компетентний; створюєш бажання приїхати, але без тиску й нав\'язливості. Веди діалог проактивно: не зупиняйся на «ось інформація» — завжди пропонуй наступний крок.',
-    // 5) Пріоритети (адмінка)
+    // 4) Пріоритети (адмінка)
     s.ai.priorities ? ('ПРІОРИТЕТИ ПРОПОЗИЦІЙ (радь ними першими, коли доречно): ' + s.ai.priorities) : '',
-    // 6) Тон і стиль
-    'ТОН І СТИЛЬ: тепло, вишукано, по-людськи — як консьєрж дорогого винного готелю. Стисло, як у месенджері (зазвичай 2–5 речень). Ключове — **жирним**. Емодзі зрідка й доречно (🍷). НЕ використовуй markdown-таблиці та довгі марковані списки.',
-    // 7) Тільки факти з інструментів
-    'ФАКТИ ЛИШЕ З ІНСТРУМЕНТІВ (антигалюцинація): будь-які ціни, наявність, години, правила, зручності — ТІЛЬКИ через інструменти (search_availability / get_room_details / list_packages / search_knowledge). НІКОЛИ не вигадуй числа, дати чи факти. Якщо потрібної інформації в базі немає — чесно скажи, що уточниш на рецепції (' + hotel.phone + ', ' + hotel.email + '), і запропонуй допомогти з іншим.',
-    // 8) Картки замість тексту
+    // 5) Плейбук продажів (місія/тон/чесність/дискавері/цінність/якір/апсел/заперечення/закриття)
+    CONCIERGE_PLAYBOOK,
+    // 6) Картки замість тексту
     'КАРТКИ: коли показуєш номери, наявність чи пакети — ОБОВ\'ЯЗКОВО виклич відповідний інструмент і НЕ переліковуй їх текстом: інтерфейс сам покаже гарні картки з фото, цінами й кнопками. У тексті — лише короткий вступ (1–2 речення) + ОДНА впевнена рекомендація з причиною.',
-    // 9) Флоу підбору/бронювання
-    'ФЛОУ: 1) з\'ясуй потребу гостя; 2) для наявності/бронювання потрібні ДАТИ (заїзд+виїзд) і КІЛЬКІСТЬ гостей — якщо чогось бракує, спитай ОДНИМ коротким питанням (запропонуй зручний варіант, напр. «найближчі вихідні, для двох»); 3) виклич search_availability; 4) впевнено порекомендуй КОНКРЕТНИЙ номер під потребу + поясни ЧОМУ (вид, тераса, wine-wellness, місткість); 5) доречний апсел; 6) підтвердження бронювання (нижче).',
-    // 9b) Товарна модель (щоб не подвоювати ціну)
-    'ТОВАРНА МОДЕЛЬ (важливо): НОМЕРИ бронюються ЗА НІЧ (ціна × кількість ночей). ПАКЕТИ — це готові стеї на фіксовану кількість ночей за фіксовану ціну, що ВЖЕ включають проживання + враження (дегустацію, wine-wellness, вечерю тощо). Пакет — це АЛЬТЕРНАТИВА бронюванню номера, а НЕ доплата згори: НІКОЛИ не додавай ціну номера до ціни пакета і не сумуй їх (це подвійний рахунок за проживання). Пропонуй АБО номер (за ніч), АБО пакет (усе включено за його фіксовану ціну) — і називай лише відповідну одну суму.',
-    // 10) Продаж і робота із запереченнями
-    'ПРОДАЖ І ЦІННІСТЬ: завжди давай КОНКРЕТНУ рекомендацію (не «ось усі варіанти»). Підкреслюй цінність (виноградники Палави, wine-wellness, сніданок у ціні, тераса, атмосфера). За доречності м\'яко запропонуй пакет або винний досвід (дегустація/wellness) як приємне доповнення. Заперечення щодо ціни — покажи цінність або запропонуй дешевший номер/пакет. Немає місця на дати — ОДРАЗУ запропонуй альтернативні дати чи інший номер, не залишай гостя в глухому куті.',
-    // 11) Підтвердження бронювання
-    'БРОНЮВАННЯ (важливо): create_reservation виклич ЛИШЕ після того, як (а) показав гостю стислий ПІДСУМОК (номер/пакет, дати, гості, ночей, разом ' + cur + ') і гість ЯВНО підтвердив, ТА (б) маєш його ІМʼЯ (email — за бажанням). Спершу коротко попроси підтвердити й назвати імʼя. Для номера передавай room_id+checkin+checkout+adults (+children); для пакета — package_id. Після успіху — тепло привітай, назви КОД підтвердження й наступний крок; за доречності запропонуй додати дегустацію чи wellness.',
-    // 12) Межі
-    'МЕЖІ: тримайся теми готелю; на сторонні теми чемно повертай до бронювання/послуг. Будь чесним, ніколи не обіцяй того, чого немає в даних. Це демо — справжня оплата не проводиться (згадуй лише якщо питають про оплату).',
-    // 13) База знань чеською
+    // 7) Техніка виклику інструмента бронювання + межі демо
+    'ТЕХНІКА create_reservation: для НОМЕРА — room_id + checkin + checkout + adults (+children); для ПАКЕТА — package_id. Дати DD.MM.YYYY, лише майбутні. Це демо — справжня оплата не проводиться (згадуй лише якщо питають про оплату).',
+    // 8) Формат
+    'ФОРМАТ: стисло, як у месенджері; **жирним** — головне; емодзі зрідка; БЕЗ markdown-таблиць і довгих марк. списків.',
+    // 9) База знань чеською
     'БАЗА ЗНАНЬ — ЧЕСЬКОЮ: у query для search_knowledge завжди передавай ЧЕСЬКІ ключові слова (переклади суть питання), інакше нічого не знайдеш. Відповідь гостю — його мовою.',
     // 14) SUGGESTIONS
     'НАПРИКІНЦІ КОЖНОЇ відповіді — окремим ОСТАННІМ рядком: SUGGESTIONS: варіант1 | варіант2 | варіант3 — 2–4 дуже короткі ймовірні відповіді гостя ВІД ПЕРШОЇ ОСОБИ, доречні саме до цього контексту й такі, що ведуть до бронювання (напр. «Забронювати Diamond Royal | Що входить у Wine Wellness? | Покажіть романтичний пакет»), ТІЄЮ Ж мовою, що й відповідь. Нічого не пиши після цього рядка.',
@@ -220,17 +262,27 @@ async function callClaude(messages, lang) {
       convo.push({ role: 'user', content: toolResults });
       continue;
     }
-    const text = (data.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('\n').trim();
-    const reservation = events.filter(function (e) { return e.tool === 'create_reservation' && e.result && e.result.ok; }).map(function (e) { return e.result; }).pop() || null;
+    let text = (data.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('\n').trim();
+    const reservation = pickReservation(events);
+    if (!text && !reservation) text = fallbackReply(lang);
     return { reply: text, events: events, reservation: reservation, mode: 'claude', model: MODEL };
   }
-  return { reply: (lang === 'en' ? 'Sorry, the request could not be completed. Please call the reception: ' : 'Omlouvám se, požadavek se nepodařilo dokončit. Zavolejte prosím na recepci: ') + db.publicData().hotel.phone + '.', events: events, mode: 'claude', model: MODEL };
+  // Вичерпано кроки: не губимо успішне бронювання, якщо воно вже сталося.
+  return { reply: fallbackReply(lang), events: events, reservation: pickReservation(events), mode: 'claude', model: MODEL };
+}
+function pickReservation(events) {
+  return events.filter(function (e) { return e.tool === 'create_reservation' && e.result && e.result.ok; }).map(function (e) { return e.result; }).pop() || null;
+}
+function fallbackReply(lang) {
+  return (lang === 'en' ? 'Sorry, the request could not be completed. Please call the reception: ' : 'Omlouvám se, požadavek se nepodařilo dokončit. Zavolejte prosím na recepci: ') + db.publicData().hotel.phone + '.';
 }
 
 // --- Роутинг ------------------------------------------------------------------
 const server = http.createServer(async function (req, res) {
   const url = req.url.split('?')[0];
   const M = req.method;
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   try {
     // ---- динамічні дані сайту з БД ----
@@ -253,14 +305,19 @@ const server = http.createServer(async function (req, res) {
       catch (e) { console.error('[chat] ' + e.message); return sendJSON(res, 200, { mode: 'error', error: e.message, fallback: 'sim' }); }
     }
 
-    // ---- логування (клієнт) ----
+    // ---- логування (клієнт) — публічне, тому обмежуємо й санітизуємо ----
     if (M === 'POST' && url === '/api/conversation') {
-      const b = await readBody(req);
-      db.logTurn(b.sessionId, { role: b.role, text: b.text, meta: b.meta, mode: b.mode });
+      if (rateLimited(req, 150, 60000)) return sendJSON(res, 429, { ok: false });
+      const b = await readBody(req, 2e5);
+      const role = ['user', 'bot', 'assistant', 'system'].indexOf(b.role) !== -1 ? b.role : 'user';
+      const text = String(b.text == null ? '' : b.text).slice(0, 4000);
+      const sid = String(b.sessionId == null ? '' : b.sessionId).slice(0, 80);
+      db.logTurn(sid, { role: role, text: text, meta: b.meta, mode: b.mode });
       return sendJSON(res, 200, { ok: true });
     }
     if (M === 'POST' && url === '/api/reservation') {
-      const b = await readBody(req);
+      if (rateLimited(req, 60, 60000)) return sendJSON(res, 429, { ok: false });
+      const b = await readBody(req, 2e5);
       db.logReservation(b);
       return sendJSON(res, 200, { ok: true });
     }
@@ -293,8 +350,8 @@ const server = http.createServer(async function (req, res) {
       }
       if (M === 'GET' && url === '/admin/api/conversations') return sendJSON(res, 200, { list: db.conversationsList() });
       if (M === 'GET' && url === '/admin/api/conversation') {
-        const id = (req.url.split('?')[1] || '').replace(/^.*\bid=/, '');
-        const c = db.get().conversations[decodeURIComponent(id)];
+        const id = (function () { try { return new URL(req.url, 'http://x').searchParams.get('id') || ''; } catch (e) { return ''; } })();
+        const c = db.get().conversations[id];
         return sendJSON(res, 200, c || { error: 'not found' });
       }
       if (M === 'GET' && url === '/admin/api/reservations') return sendJSON(res, 200, { list: db.get().reservations });
@@ -327,7 +384,8 @@ server.listen(PORT, function () {
   console.log('');
   console.log('  🍷  Hotel Ryzlink — концепт запущено');
   console.log('  ➜  Сайт:    http://localhost:' + PORT);
-  console.log('  ➜  Адмінка: http://localhost:' + PORT + '/admin   (пароль: ' + ADMIN_PASSWORD + ')');
+  console.log('  ➜  Адмінка: http://localhost:' + PORT + '/admin');
   console.log('  AI-агент: ' + (AI_ENABLED ? ('справжній Claude (' + currentModel() + ')') : 'офлайн-симуляція (ANTHROPIC_API_KEY не задано)'));
+  if (ADMIN_PW_IS_DEFAULT) console.warn('  ⚠️  ADMIN_PASSWORD не задано — використовується дефолтний. ОБОВ\'ЯЗКОВО задайте власний для прод.');
   console.log('');
 });

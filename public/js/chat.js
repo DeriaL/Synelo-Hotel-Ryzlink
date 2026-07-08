@@ -189,7 +189,8 @@
   }
 
   /* ---------------- Рендер повідомлень ---------------- */
-  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function escAttr(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
   // Легкий markdown-рендер: жирний/курсив, списки, таблиці, переноси.
   function inlineMd(t) {
     return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<i>$2</i>');
@@ -277,13 +278,18 @@
     if (input) input.placeholder = t('placeholder');
     addMsg('user', text);
     history.push({ role: 'user', content: text });
+    if (history.length > 60) history.splice(0, history.length - 60); // не даємо історії рости безмежно
     typing(true);
 
     if (aiMode === 'claude') {
+      var _ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var _timer = setTimeout(function () { if (_ctrl) _ctrl.abort(); }, 30000);
       fetch('/api/chat', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: history, lang: chatLang })
+        body: JSON.stringify({ messages: history.slice(-24), lang: chatLang }),
+        signal: _ctrl ? _ctrl.signal : undefined
       }).then(function (r) { return r.json(); }).then(function (res) {
+        clearTimeout(_timer);
         typing(false);
         if (res.mode === 'claude') {
           var raw = res.reply || '';
@@ -301,7 +307,7 @@
           aiMode = 'sim'; if (modeEl) modeEl.textContent = 'demo asistent';
           simReply(text);
         }
-      }).catch(function () { typing(false); aiMode = 'sim'; simReply(text); });
+      }).catch(function () { clearTimeout(_timer); typing(false); aiMode = 'sim'; simReply(text); });
     } else {
       // невелика пауза для природності
       setTimeout(function () { typing(false); simReply(text); }, 420);
@@ -309,10 +315,10 @@
   }
 
   function renderReservationCard(r) {
-    addCard('<div class="rz-conf">' + r.confirmation + '</div>' +
-      '<div class="rz-crow"><span>' + (r.item || t('resv')) + '</span><span>' + (r.checkin || '') + (r.checkout ? ' → ' + r.checkout : '') + '</span></div>' +
+    addCard('<div class="rz-conf">' + esc(r.confirmation) + '</div>' +
+      '<div class="rz-crow"><span>' + esc(r.item || t('resv')) + '</span><span>' + esc((r.checkin || '') + (r.checkout ? ' → ' + r.checkout : '')) + '</span></div>' +
       '<div class="rz-crow"><span>' + t('guest') + '</span><span>' + esc(r.name) + '</span></div>' +
-      '<div class="rz-crow rz-ctot"><span>' + t('total') + '</span><span>' + r.total.toLocaleString('cs-CZ') + ' CZK</span></div>');
+      '<div class="rz-crow rz-ctot"><span>' + t('total') + '</span><span>' + Number(r.total || 0).toLocaleString('cs-CZ') + ' CZK</span></div>');
     logReservation(r, 'chat');
     logTurn('bot', 'Rezervace potvrzena: ' + r.confirmation, { reservation: r.confirmation });
   }
@@ -335,27 +341,27 @@
       avail.options.forEach(function (o) {
         if (!o.available) return; any = true;
         addCard(roomImg(o.img) +
-          '<div class="rz-crow"><b>' + o.name + '</b><span>' + o.total.toLocaleString('cs-CZ') + ' CZK</span></div>' +
-          '<div style="color:#6f635a;margin:4px 0 8px">' + avail.nights + ' ' + t('nights') + ' · ' + t('upTo') + ' ' + o.capacity + ' ' + t('guests') + (o.note ? ' · <span style="color:#a3182a">' + o.note + '</span>' : '') + '</div>' +
-          '<button class="rz-chip" data-cbook="' + o.roomId + '">' + t('bookThis') + '</button>');
+          '<div class="rz-crow"><b>' + esc(o.name) + '</b><span>' + Number(o.total || 0).toLocaleString('cs-CZ') + ' CZK</span></div>' +
+          '<div style="color:#6f635a;margin:4px 0 8px">' + avail.nights + ' ' + t('nights') + ' · ' + t('upTo') + ' ' + esc(o.capacity) + ' ' + t('guests') + (o.note ? ' · <span style="color:#a3182a">' + esc(o.note) + '</span>' : '') + '</div>' +
+          '<button class="rz-chip" data-cbook="' + escAttr(o.roomId) + '">' + t('bookThis') + '</button>');
       });
       if (any) return bindClaudeBook();
     }
     if (rooms) {
       rooms.forEach(function (r) {
         addCard(roomImg(r.img) +
-          '<div class="rz-crow"><b>' + r.name + '</b><span>' + r.price.toLocaleString('cs-CZ') + ' ' + t('perNight') + '</span></div>' +
-          '<div style="color:#6f635a;margin:4px 0 8px">' + (r.short || '') + ' · ' + t('upTo') + ' ' + r.capacity + ' ' + t('guests') + '</div>' +
-          '<button class="rz-chip" data-cbook="' + r.id + '">' + t('choose') + ' ' + r.name + '</button>');
+          '<div class="rz-crow"><b>' + esc(r.name) + '</b><span>' + Number(r.price || 0).toLocaleString('cs-CZ') + ' ' + t('perNight') + '</span></div>' +
+          '<div style="color:#6f635a;margin:4px 0 8px">' + esc(r.short || '') + ' · ' + t('upTo') + ' ' + esc(r.capacity) + ' ' + t('guests') + '</div>' +
+          '<button class="rz-chip" data-cbook="' + escAttr(r.id) + '">' + t('choose') + ' ' + esc(r.name) + '</button>');
       });
       return bindClaudeBook();
     }
     if (pkgs) {
       pkgs.forEach(function (p) {
         addCard(roomImg(p.img) +
-          '<div class="rz-crow"><b>' + p.name + '</b><span>' + p.price.toLocaleString('cs-CZ') + ' CZK</span></div>' +
-          '<div style="color:#6f635a;margin:4px 0 8px">' + (p.desc || '') + '</div>' +
-          '<button class="rz-chip" data-cbookpkg="' + p.id + '">' + t('choose') + ' «' + p.name + '»</button>');
+          '<div class="rz-crow"><b>' + esc(p.name) + '</b><span>' + Number(p.price || 0).toLocaleString('cs-CZ') + ' CZK</span></div>' +
+          '<div style="color:#6f635a;margin:4px 0 8px">' + esc(p.desc || '') + '</div>' +
+          '<button class="rz-chip" data-cbookpkg="' + escAttr(p.id) + '">' + t('choose') + ' «' + esc(p.name) + '»</button>');
       });
       return bindClaudeBook();
     }
